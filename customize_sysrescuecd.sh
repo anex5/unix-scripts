@@ -196,10 +196,10 @@ select_options()
 		#echo
 		#echo "input len: ${#ix}"
 		#echo "Selected: $selected"
-		return 1
+		return 0
 	else
 		echo "Bad options: ${1}" 1>&2
-		return 0
+		return 1
 	fi
 }
 
@@ -258,7 +258,7 @@ freespace()
 
 do_squashfs()
 {
-	local squashfs_exclude="${squashfs_dst}/usr/portage/* ${squashfs_dst}/var/cache/edb/dep/ ${squashfs_dst}/proc/* ${squashfs_dst}/dev/* ${squashfs_dst}/sys/*"
+	local squashfs_exclude="${squashfs_dst}/usr/portage ${squashfs_dst}/var/cache/ ${squashfs_dst}/proc ${squashfs_dst}/dev ${squashfs_dst}/sys"
 	local squashfs_outdir="${1}" || ${work_dir}
 
 	if [ $(freespace ${squashfs_outdir}) -lt 400 ]; then
@@ -283,7 +283,7 @@ do_squashfs()
 	done
 
 	rm -f ${squashfs_outdir}/${squashfs_name}
-	cmd "mksquashfs ${squashfs_dst}/ ${squashfs_outdir}/${squashfs_name} -e ${squashfs_exclude}" || echo "squashfs: failed"
+	cmd "mksquashfs ${squashfs_dst}/ ${squashfs_outdir}/${squashfs_name} -e ${squashfs_exclude}" || echo "squashfs: failed with code $?"
 
 	md5sum ${squashfs_outdir}/${squashfs_name} > ${squashfs_outdir}/${squashfs_name%????}.md5
 
@@ -295,8 +295,8 @@ do_squashfs()
 do_isogen()
 {
 	curtime="$(date +%Y%m%d-%H%M)"
-	ISO_VOLUME="${1}" || "SYSRESCCD"
-	local iso_outdir="${2}" || "${work_dir}"
+	ISO_VOLUME="SYSRESCCD"
+	local iso_outdir="${1}" || "${work_dir}"
 
 	# check for free space
 	if [ "$(freespace ${iso_outdir})" -gt 500 ]; then
@@ -452,7 +452,7 @@ dialog
 	#cp -L /etc/resolv.conf ${squashfs_dst}/etc/
 	chroot ${squashfs_dst} /bin/bash -c "env-update; source /etc/profile; gcc-config \$(gcc-config -c); "
 	chroot ${squashfs_dst} /bin/bash
-	chroot ${squashfs_dst} /bin/bash -c "rm -r /var/cache/edb/dep/; sysresccd-cleansys devtools x11tools"
+	chroot ${squashfs_dst} /bin/bash -c "sysresccd-cleansys devtools; rm -rf /var/log/* /usr/sbin/sysresccd-* /usr/share/sysreccd"
 
 
 msg="Select directory you want to use for output ${squashfs_name}."
@@ -476,10 +476,20 @@ keymaps=$(find /livemnt/boot/isolinux/maps/* -maxdepth 0 -type f -name '*.ktl' -
 dialog "${keymaps}"
 	KEYMAP=${selected}
 
+msg="Select directory you want to use for output iso."
+dir_list=$(find /mnt -maxdepth 2 -type d)
+dialog "${dir_list} new..."
+	if [ "${selected}" = "new..." ]; then
+		read -p "Enter name of new directory in /mnt " new_dir
+		make_dir "/mnt/${new_dir}"
+		output=/mnt/${new_dir}
+	else
+		output=${selected}
+	fi
+
 msg="Create new ISO image?"
 dialog
-read -p "Specify the name of new ISO volume " iso_name
-	do_isogen ${iso_name} ${output}
+	do_isogen ${output}
 
 do_cleanup
 exit 0
