@@ -10,7 +10,7 @@ XIFS=$IFS
 clean_cmds=""
 
 tempfs_dir="/mnt/media"
-tempfs_size=${1} || 4000
+test -n "${1}" && tempfs_size=${1} || tempfs_size=4000
 squashfs_name="sysrcd.dat"
 squashfs_mountpoint="/livemnt/squashfs"
 squashfs_dst="customcd/files"
@@ -34,7 +34,8 @@ execution_premission()
 
 decrunch()
 {
-	local params=(${1})
+	test -n "$@" || { echo "${FUNCNAME[0]}: No params given"; return 1; }
+	local params=($@)
 	local params_count=${#params[*]}
 	local src="${params[params_count-2]}"
 	local dst="${params[params_count-1]}"
@@ -54,51 +55,44 @@ decrunch()
             *.zip) cmd="unzip -d ${dst} ";;
             *.z) cmd="uncompress ${dst} ";;
             *.7z) cmd="7z x ${dst} ";;
-            *) echo "'${src}' cannot be extracted via extract"; return 1;
+            *) echo "${FUNCNAME[0]}:  ${src} cannot be extracted via extract"; return 1;;
 		esac
-		echo "${cmd}"
-		pv ${src} | ${cmd}
+		try pv ${src} | ${cmd}
 		return $?
 	else
-		echo "'${src}' is not a valid file"
+		echo "${FUNCNAME[0]}: ${src} is not a valid file"
 		return 1
 	fi
 }
 
 copy_files()
 {
-	if [ -n "${1}" ]; then
-		local params=(${1})
-		local params_count=${#params[*]}
-		local src="${params[params_count-2]}"
-		local dst="${params[params_count-1]}"
-		cmd="rsync -h -a --info=progress2 -t ${src} ${dst}"
-		echo "${cmd}"
-		${cmd}
-		return $?
-	else
-		echo "'${1}' is not a valid params"
-		return 1
-	fi
+	test -n "$@" || { echo "${FUNCNAME[0]}: No params given"; return 1; }
+	local params=($@)
+	local params_count=${#params[*]}
+	local src="${params[params_count-2]}"
+	local dst="${params[params_count-1]}"
+	try "rsync -h -a -t ${src} ${dst}"
+	return $?
 }
 
 make_dir()
 {
-	if [ -n "${1}" ]; then
-		local dirname="${1}"
+	test -n "${1}" || { echo "${FUNCNAME[0]}: No params given"; return 1; }
+	local dirname="${1}"
 
-		if ! [ -d ${dirname} ]; then
-			echo "Creating ${dirname}"
-			if mkdir -p ${dirname}; then
-				cleanup "rm -r ${dirname}"
-			else
-				die "Can't create directory ${dirname}"
-			fi
+	if ! [ -d ${dirname} ]; then
+		echo "Creating ${dirname}..."
+		if try mkdir -p ${dirname}
+		then
+			cleanup "rm -r ${dirname}"
 		else
-			echo "Directory $dirname already exists."
+			echo "Can't create directory ${dirname}"
+			return 1
 		fi
 	else
-		echo "'${1}' is not valid directory name"
+		echo "Directory ${dirname} already exists."
+		return 0
 	fi
 }
 
@@ -114,37 +108,41 @@ wait_umount()
 
 do_mount()
 {
-	local params=(${1})
+	test -n "$@" || { echo "${FUNCNAME[0]}: No params given"; return 1; }
+	local params=($@)
 	local params_count=${#params[*]}
 	local src="${params[params_count-2]}"
 	local dst="${params[params_count-1]}"
 	#echo ${params} ${params_count} ${src} ${dst}
-	if is_mounted ${dst}; then
-		echo "'${dst}' allready mounted."
+	if is_mounted ${dst}
+	then
+		echo "${dst} allready mounted."
+		return 0
 	else
-		if mount ${1}; then
-			cleanup 'wait_umount '${dst}
-			cleanup 'umount -d '${dst}
+		if try mount $@
+		then
+			cleanup "wait_umount "${dst}
+			cleanup "umount -d "${dst}
 		else
-			die "Can't mount ${src} to ${dst}"
+			echo "${FUNCNAME[0]}: Can't mount ${src} to ${dst}"
+			return 1
 		fi
 	fi
 }
 
-
 cleanup()
 {
-	if [ -n "${1}" ]; then
-		local cmd_ix=${#clean_cmds[*]}
-		clean_cmds[$cmd_ix]=${1}
-	fi
+	test -n "$@" || { echo "${FUNCNAME[0]}: No params given"; return 1; }
+	local cmd_ix=${#clean_cmds[*]}
+	clean_cmds[$cmd_ix]=${1}
 }
 
 do_cleanup()
 {
 	execution_premission "Execute cleanup?" || exit 1
 	local cmd_count=${#clean_cmds[*]}
-	for cmd_ix in ${!clean_cmds[*]}; do
+	for cmd_ix in ${!clean_cmds[*]}
+	do
 		echo "${clean_cmds[cmd_count-cmd_ix-1]}"
 		${clean_cmds[cmd_count-cmd_ix-1]}
 	done
@@ -155,10 +153,9 @@ dialog()
 {
 	echo
 	step=$((${step}+1))
-	if [ -n "${1}" ]
-	then
+	if [ -n "${1}" ]; then
 		echo "${step}. ${msg}"
-		select_options "${1} exit"
+		select_options "${1} exit" || die
 		if [ "${selected}" = "exit" ]; then
 			die "Exiting..."
 		fi
@@ -170,44 +167,23 @@ dialog()
 select_options()
 {
 	local i
-	local ix=0
+	test -n "${1}" || { echo "${FUNCNAME[0]}: No params given"; return 1; }
 
-	if [ -n "${1}" ] ; then
-		local options=${1}
+	local options=${1}
+	select i in ${options}
+	do
+		selected=${i}
+		break
+	done
 
-		select i in ${options}
-		do
-			selected=${i}
-			break
-		done
-
-		#for i in $options; do
-		#	ix=$(($ix+1))
-		#	echo "$ix. $i"
-		#done
-
-		#local input=0
-		#until [[ $input in $(seq 1 $ix) ]]
-		#do
-		#	read -n ${#ix} -p "Select: " input
-		#	opt=($options)
-		#	selected=${opt[$input]}
-		#done
-		#echo
-		#echo "input len: ${#ix}"
-		#echo "Selected: $selected"
-		return 0
-	else
-		echo "Bad options: ${1}" 1>&2
-		return 1
-	fi
+	return 0
 }
 
 check_dir()
 {
 	if ! [ -d "${1}" ]; then
 		if [ -z "${2}" ]; then
-			echo "Directory ${1} doesn't exist." 1>&2
+			echo "Directory ${1} doesn't exist."
 			return 0
 		else
 			#echo "${2}" 1>&2
@@ -218,10 +194,8 @@ check_dir()
 
 is_mounted()
 {
-	local curdev="${1}"
-	#echo "${curdev}"
-
-	if cat /proc/mounts | grep -q "${curdev}"
+	test -n "${1}" || { echo "${FUNCNAME[0]}: No params given"; return 1; }
+	if cat /proc/mounts | grep -q "${1}"
 	then
 		return 0
 	else
@@ -232,7 +206,7 @@ is_mounted()
 die()
 {
 	if [ -n "${1}" ]; then
-		echo "$(basename ${PROGIMG}): error: ${1}"
+		echo "$(basename ${PROGIMG}): ${1}"
 	else
 		echo "$(basename ${PROGIMG}): aborting."
 	fi
@@ -242,33 +216,33 @@ die()
 	exit 1
 }
 
-cmd()
+try()
 {
-	echo ${1}
-	${1}
+	echo $@
+	$@
 	return $?
 }
 
 freespace()
 {
-	local size=$(df -m -P ${1} | grep " ${1}$" | tail -n 1 | awk '{print $4}')
-	echo "${size}"
-	return "${size}"
+	test -n "$@" || { echo "${FUNCNAME[0]}: No params given"; return 1; }
+	echo $(df -m -P ${1} | grep " ${1}$" | tail -n 1 | awk '{print $4}')
+	return $?
 }
 
 do_squashfs()
 {
 	local squashfs_exclude="${squashfs_dst}/usr/portage ${squashfs_dst}/var/cache/ ${squashfs_dst}/proc ${squashfs_dst}/dev ${squashfs_dst}/sys"
-	local squashfs_outdir="${1}" || ${work_dir}
+	test -n "${1}" && local squashfs_outdir="${1}" || local squashfs_outdir=${work_dir}
 
-	if [ $(freespace ${squashfs_outdir}) -lt 400 ]; then
-		echo "Not enough room in ${squashfs_outdir}" 2>&1
+	if [ "$(freespace ${squashfs_outdir})" -lt 400 ]; then
+		echo "${FUNCNAME[0]}: Not enough room in ${squashfs_outdir}"
 		return 1
 	fi
 
 	# check that the files have been extracted
 	if [ "$(ls -A ${squashfs_dst}/ 2>/dev/null | wc -l)" -eq 0 ]; then
-		echo "${squashfs_dst} is empty, your must extract the files first." 2>&1
+		echo "${FUNCNAME[0]}: ${squashfs_dst} is empty, your must extract the files first."
 		return 1
 	fi
 
@@ -277,13 +251,12 @@ do_squashfs()
 		local curpath="${squashfs_dst}/${curfs}"
 		local dircnt="$(ls -A ${curpath} 2>/dev/null | wc -l)"
 		if [ ${dircnt} -gt 0 ]; then
-			echo "The directory ${curpath} must be empty" 2>&1
+			echo "${FUNCNAME[0]}: The directory ${curpath} must be empty"
 			return 1
 		fi
 	done
 
-	rm -f ${squashfs_outdir}/${squashfs_name}
-	cmd "mksquashfs ${squashfs_dst}/ ${squashfs_outdir}/${squashfs_name} -e ${squashfs_exclude}" || echo "squashfs: failed with code $?"
+	try "mksquashfs ${squashfs_dst}/ ${squashfs_outdir}/${squashfs_name} -e ${squashfs_exclude}" || echo "${FUNCNAME[0]}: mksquashfs: failed with code $?"; return 1
 
 	md5sum ${squashfs_outdir}/${squashfs_name} > ${squashfs_outdir}/${squashfs_name%????}.md5
 
@@ -296,26 +269,28 @@ do_isogen()
 {
 	curtime="$(date +%Y%m%d-%H%M)"
 	ISO_VOLUME="SYSRESCCD"
-	local iso_outdir="${1}" || "${work_dir}"
+	test -n "${1}" && local iso_outdir="${1}" || local iso_outdir="${work_dir}"
 
 	# check for free space
 	if [ "$(freespace ${iso_outdir})" -gt 500 ]; then
-		echo "Not enough room in ${iso_outdir}" 1>&2
+		echo "Not enough room in ${iso_outdir}"
 		return 1
 	fi
 
 	# ---- copy critical files and directories
-	for curfile in version isolinux; do
-		copy_files "/livemnt/boot/${curfile} ${iso_outdir}" || echo "copy: cannot copy ${curfile} to ${iso_outdir}" 1>&2; return 1
+	for curfile in version isolinux
+	do
+		copy_files "/livemnt/boot/${curfile} ${iso_outdir}" || echo "${FUNCNAME[0]}: cannot copy ${curfile} to ${iso_outdir}"
 	done
 
 	# ---- copy optionnal files and directories
-	for curfile in boot bootprog bootdisk efi ntpasswd usb_inst usb_inst.sh usbstick.htm; do
-		copy_files "/livemnt/boot/${curfile} ${iso_outdir}" || echo "cannot copy ${curfile} to ${iso_outdir} (non critical error, maybe be caused by \"docache\")"
+	for curfile in boot bootprog bootdisk efi ntpasswd usb_inst usb_inst.sh usbstick.htm
+	do
+		copy_files "/livemnt/boot/${curfile} ${iso_outdir}" || echo "${FUNCNAME[0]}: cannot copy ${curfile} to ${iso_outdir} (non critical error, maybe be caused by \"docache\")"
 	done
 
 	if [ ! -d "${iso_outdir}/isolinux" ]; then
-		echo "do_isogen: you must create a squashfs filesystem before making iso" 1>&2
+		echo "${FUNCNAME[0]}: you must create a squashfs filesystem before making iso"
 		return 1
 	fi
 
@@ -328,18 +303,19 @@ do_isogen()
 
 	echo "Volume name of the CDRom: ${ISO_VOLUME}"
 
-	cmd "xorriso -as mkisofs -joliet -rock \
+	try "xorriso -as mkisofs -joliet -rock \
 		-omit-version-number -disable-deep-relocation \
 		-b isolinux/isolinux.bin -c isolinux/boot.cat \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
 		-eltorito-alt-boot -e boot/grub/efi.img -no-emul-boot \
 		-o ${iso_outdir}/sysresccd-${curtime}.iso \
-		-volid ${ISO_VOLUME} ${iso_outdir}" || echo "mkisofs failed" 1>&2; return 1
+		-volid ${ISO_VOLUME} ${iso_outdir}" || echo "${FUNCNAME[0]}: mkisofs failed"; return 1
 
 	md5sum ${iso_outdir}/sysresccd-${curtime}.iso > ${iso_outdir}/sysresccd-${curtime}.md5
 
 	echo "Final ISO image: ${iso_outdir}/sysresccd-${curtime}.iso"
 }
+
 
 echo
 echo "This script helps to customize sysrescuecd."
@@ -349,9 +325,8 @@ dialog
 
 if ! check_dir ${work_dir}
 then
-	if execution_premission "Create ${work_dir}?"
-	then
-		make_dir ${work_dir}
+	if execution_premission "Create ${work_dir}?" ; then
+		make_dir ${work_dir} || die
 	else
 		die "Work directory not selected"
 	fi
@@ -360,7 +335,7 @@ fi
 msg="Select directory you want to use for temporary image."
 dir_list=$(find ${work_dir}/* -maxdepth 0 -type d)
 dialog "${dir_list} new..."
-	if [ "${selected}" = "new..." ]; then
+	if [ "${selected}" = "new..." ] ; then
 		read -p "Enter name of new directory" new_dir
 		make_dir "/mnt/${new_dir}"
 	else
@@ -370,7 +345,7 @@ dialog "${dir_list} new..."
 fdisk -l
 
 msg="Select working partition."
-part_list=$(find /dev/* -maxdepth 0 -name 'sd??*' -or -name 'hd??*')
+part_list=$(find /dev/* -maxdepth 0 -name "sd??*" -or -name "hd??*")
 dialog "${part_list}"
 
 	tempfs="${tempfs_dir}/fsimage"
@@ -383,9 +358,9 @@ dialog "${part_list}"
 
 	if ! [ -f "${tempfs}" ]; then
 		echo "Creating filesystem container ${tempfs} of ${tempfs_size}M..."
-		cmd "dd if=/dev/zero of=${tempfs} bs=1M count=${tempfs_size}"
+		try "dd if=/dev/zero of=${tempfs} bs=1M count=${tempfs_size}" || echo "Cannot create filesystem container ${tempfs} of ${tempfs_size}M"
 		echo "Formatting..."
-		cmd "mkfs.btrfs -m single ${tempfs}"
+		try "mkfs.btrfs -m single ${tempfs}" || echo "Cannot format ${tempfs}"
 	fi
 
 	do_mount "-o loop ${tempfs} ${work_dir}"
@@ -401,7 +376,7 @@ if [ -n "${squashfs_src}" ]; then
 		squashfs_src="${selected}"
 		do_mount "-t squashfs -o loop ${selected} ${squashfs_mountpoint}"
 		make_dir "${squashfs_dst}"
-		copy_files "${squashfs_mountpoint}/ ${squashfs_dst}" || die "Cannot copy the files from ${selected}"
+		copy_files "${squashfs_mountpoint}/ ${squashfs_dst}" || echo "Cannot copy the files from ${selected}"
 	fi
 else
 	echo "No squashfs found on disk."
@@ -413,11 +388,10 @@ snapshot_list="http://ftp.osuosl.org/pub/funtoo/funtoo-current/snapshots/${porta
 http://mirror.yandex.ru/gentoo-distfiles/snapshots/${portage_tree_name} \
 http://gentoo.osuosl.org/snapshots/${portage_tree_name}"
 
-if [ -n "${snapshot_list}" ]
-then
+if [ -n "${snapshot_list}" ]; then
 	dialog "${snapshot_list} skip"
 	if ! [ "${selected}" = "skip" ]; then
-		curl --progress-bar -o ${work_dir}/${portage_tree_name} ${selected}
+		try "curl --progress-bar -o ${work_dir}/${portage_tree_name} ${selected}" || echo "Cannot download new portage tree from ${selected}"
 		cleanup "rm -r ${work_dir}/${portage_tree_name}"
 	fi
 else
@@ -425,9 +399,8 @@ else
 fi
 
 msg="Extract new portage tree? "
-snapshot_list=$(find / -maxdepth 5 -type f -name 'portage-*.tar.*')
-if [ -n "${snapshot_list}" ]
-then
+snapshot_list=$(find / -maxdepth 5 -type f -name "portage-*.tar.*")
+if [ -n "${snapshot_list}" ]; then
 	dialog "${snapshot_list} skip"
 	if ! [ "${selected}" = "skip" ]; then
 		decrunch "${selected} ${squashfs_dst}/usr/" || echo "Cannot extract the files from the ${selected}"
@@ -472,7 +445,7 @@ dialog
 	do_squashfs ${output}
 
 msg="Select default keymap"
-keymaps=$(find /livemnt/boot/isolinux/maps/* -maxdepth 0 -type f -name '*.ktl' -printf '%f\n' | sed -e 's!.ktl!!g')
+keymaps=$(find /livemnt/boot/isolinux/maps/* -maxdepth 0 -type f -name "*.ktl" -printf "%f\n" | sed -e "s!.ktl!!g")
 dialog "${keymaps}"
 	KEYMAP=${selected}
 
