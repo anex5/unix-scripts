@@ -4,32 +4,34 @@ write_save=0
 save_name=""
 selected=""
 
-die(){ 
+die(){
 	test $# -gt 0 && echo $*
 	exit 0
 }
 
 wizard(){
-	usage(){ echo "Usage: $0 m: message o: options" }
-	test $# -lt 1 && { echo "No options found!"; return 1; }
-	while getopts "m:o:" opt; do
+	usage(){
+		echo "Usage: $0 -m: message -o: options string -c option:command"
+	}
+	[ $# -lt 1 ] && { echo "No options found!"; return 1; }
+	declare -A cases
+	declare -a options
+	local ix=0
+	while getopts "m:c:o:h?" opt; do
 		case $opt in
-		m) let $((step++)) && echo -e "n$step. $OPTARGn";;
-		o) options=$OPTARG;;
-		h|?) usage && return 0;;
-		*) echo "No reasonable options found!" && usage;;
+		m) let $((step++)); echo -e "\n$step. $OPTARG\n";;
+		o) options[${#options[*]}]="$OPTARG";;
+		c) cases["${OPTARG%%:*}"]="${OPTARG##*:}";;
+		h|\?) usage && return 0;;
 		esac
 	done
-	shift $(($OPTIND--))
-	cases=$@
-	select selected in $options exit
+	shift $((OPTIND-1))
+	select selected in ${options[@]}
 	do
-		case $selected in 
-		"exit") die "Exiting...";;
-		*) case $selected in $cases esac;;
-		esac
-		break
+		[ -n "${selected}" ] && { ${cases[${selected}]}; break; }
 	done
+	unset -v cases
+	unset -v options
 }
 
-wizard m="First step" o="first second skip" skip)return 0;; *)var=$selected;; 
+wizard -m "First step" -o "first second" -o "skip"
