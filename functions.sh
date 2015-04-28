@@ -30,14 +30,14 @@ decrunch()
 	local params_count=${#params[*]}
 	local src="${params[params_count-2]}"
 	local dst="${params[params_count-1]}"
-	echo ${params} ${params_count} ${src} ${dst}
+	#echo ${params} ${params_count} "src"=${src} "dst="${dst}
 	local cmd=""
 	if [ -f "${src}" ]; then
 		case "${src}" in
 			*.tar) cmd="tar -xp -C ${dst} ";;
             *.tar.bz2,*.tbz2) cmd="tar -xpj -C ${dst} ";;
             *.tar.gz,*.tgz) cmd="tar -xpz -C ${dst} ";;
-            *.tar.xz) cmd="tar -tpJ -C ${dst} ";;
+            *.tar.xz) cmd="tar -xpJ -C ${dst} ";;
             *.bz2) cmd="bunzip2 > ${dst} ";;
             *.deb) cmd="ar x > {dst} ";;
             *.gz) cmd="gunzip > ${dst} ";;
@@ -48,7 +48,7 @@ decrunch()
             *.7z) cmd="7z x ${dst} ";;
             *) echo "${FUNCNAME[0]}: ${src} cannot be extracted via decrunch"; return 1;;
 		esac
-		try pv ${src} | ${cmd}
+		pv ${src} | ${cmd}
 		return $?
 	else
 		echo "${FUNCNAME[0]}: ${src} is not a valid file"
@@ -90,7 +90,7 @@ prompt_select(){
 	local exitcode
 	options+=" exit"
 	#echo ${options[@]} ${!cmds[@]} ${cmds[@]}
-	echo -e "\n$@\n"
+	printf "\n$*\n"
 	select i in ${options}
 	do
 		[ -n "${i}" ] && { selected="${i}"; break; }
@@ -110,7 +110,8 @@ prompt_new_dir(){
 
 save_var(){
 	[ $# -gt 1 ] || { echo "Two parameters expected!"; return 1; }
-	[ -f "${2}" ] && { echo "${1}="${!1} >> "${2}"; return 0; } || { echo "${2} is not valid file!"; return 1; }
+	echo "${1}="${!1} >> "${2}"
+	[ -w "${2}" ] && { return 0; } || { echo "${2} is not valid file!"; return 1; }
 }
 
 check_dir()
@@ -143,8 +144,8 @@ die()
 try()
 {
 	test $# -gt 0 || { echo "${FUNCNAME[0]}: No params given"; return 1; }
-	printf "\n$@"
-	$@ || printf "\n$@ exit with error code $?"
+	printf "$*\n"
+	$* || printf "\n$* exit with error code $?\n"
 	return $?
 }
 

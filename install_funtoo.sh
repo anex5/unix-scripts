@@ -81,17 +81,17 @@ if ! [ -a "${swap_part}" ]; then
 	if [ -n "${part_list}" ]; then
 		if prompt_select -m "Select swap partition." -o "${part_list} skip"; then
 			swap_part="${selected}"
-			try "mkswap ${swap_part}"
-			try "swapon ${swap_part}" && { cleanup swapoff ${swap_part}; }
+			try mkswap ${swap_part}
+			try swapon ${swap_part} && { cleanup swapoff ${swap_part}; }
 			test ${write_save} && { save_var "swap_part" ${saved_file}; }
 		fi
 	fi
 fi
 
-echo "Mounting partitions. "
-try "mount ${root_part} ${work_dir}" && { cleanup wait_umount ${work_dir}; cleanup umount -d ${work_dir}; }
-try "mkdir -p ${work_dir}/boot"
-try "mount ${boot_part} ${work_dir}/boot" && { cleanup wait_umount ${work_dir}/boot; cleanup umount -d ${work_dir}/boot; }
+printf "Mounting partitions. \n"
+try mount ${root_part} ${work_dir} && { cleanup wait_umount ${work_dir}; cleanup umount ${work_dir}; }
+try mkdir -p ${work_dir}/boot
+try mount ${boot_part} ${work_dir}/boot && { cleanup wait_umount ${work_dir}/boot; cleanup umount ${work_dir}/boot; }
 
 if ! [ -f "${stage}" ]; then
 	if execution_premission "Download new stage?"; then
@@ -100,34 +100,34 @@ if ! [ -f "${stage}" ]; then
 		cleanup "rm -r ${stage_site}"
 		options="${stage_list} skip"
 		if prompt_select "Select stage to download."; then
-			try "curl --progress-bar -L -o ${work_dir}/${stage_name} -C - ${selected}" && cleanup rm -r ${work_dir}/${stage_name}
+			try curl --progress-bar -L -o ${work_dir}/${stage_name} -C - ${selected} && cleanup rm -r ${work_dir}/${stage_name}
 		fi
 	fi
 fi
 
-stage_list=$(find / -maxdepth 5 -type f -name "${stage_name}")
-if [ -n "${stage_list}" ]; then
-	options="${stage_list} skip"
-	if prompt_select "Select stage to extract."; then
-		stage="${selected}"
-		decrunch ${stage} ${work_dir} || die "Cannot extract ${stage}"
-		test ${write_save} && { save_var "stage" ${saved_file}; }
+if ! [ -x "${work_dir}/bin/bash" ]; then
+	stage_list=$(find / -maxdepth 5 -type f -name "${stage_name}")
+	if [ -n "${stage_list}" ]; then
+		options="${stage_list} skip"
+		if prompt_select "Select stage to extract."; then
+			stage="${selected}"
+			decrunch ${stage} ${work_dir} || die "Cannot extract ${stage}"
+			test ${write_save} && { save_var "stage" ${saved_file}; }
+		fi
+	else
+		die "No ${stage_name} found on disk."
 	fi
-else
-	die "No ${stage_name} found on disk."
 fi
 
-
 if execution_premission "Chroot in the new system environment? "; then
-	try "mount -t proc none ${work_dir}/proc" && { cleanup wait_umount ${work_dir}/proc; cleanup umount -d ${work_dir}/proc; }
-	try "mount --rbind /sys ${work_dir}/sys" && {	cleanup wait_umount ${work_dir}/sys; cleanup umount -d ${work_dir}/sys; }
-	try "mount --rbind /dev ${work_dir}/dev" && { cleanup wait_umount ${work_dir}/dev; cleanup umount -d ${work_dir}/dev; }
-
-	echo "Now you are in chrooted environment."
-
-	try "scp /etc/resolv.conf ${work_dir}/etc/"
-	try "chroot ${squashfs_dst} /bin/bash -c \"export PS1=\"(chroot) \$PS1\"; env-update; source /etc/profile;\""
-	try "chroot ${squashfs_dst} /bin/bash"
+	try mount -t proc none ${work_dir}/proc && { cleanup wait_umount ${work_dir}/proc; cleanup umount ${work_dir}/proc; }
+	try mount --rbind /sys ${work_dir}/sys && { cleanup wait_umount ${work_dir}/sys; cleanup umount ${work_dir}/sys; }
+	try mount --rbind /dev ${work_dir}/dev && { cleanup wait_umount ${work_dir}/dev; cleanup umount ${work_dir}/dev; }
+	try scp /etc/resolv.conf ${work_dir}/etc/
+	env -i HOME=/root TERM=$TERM
+	printf "\nNow you are in chrooted environment.\n"
+	try chroot ${work_dir} env-update && source /etc/profile; /bin/bash
+	#try chroot ${work_dir} /bin/bash -c "export PS1=\"funtoo \$PS1\""
 fi
 
 proceed_cleanup
