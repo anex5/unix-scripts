@@ -3,23 +3,24 @@
 work_dir="/mnt"
 selected=""
 step=0
-msg=""
 PROGIMG="${0}"
 XIFS=$IFS
 #IFS=$' '
 clean_cmds=""
 
-tempfs_dir="/mnt/tempfs/fsimage"
+tempfs="/mnt/tempfs/fsimage"
 test -n "${1}" && tempfs_size=${1} || tempfs_size=4000
 squashfs_name="sysrcd.dat"
 squashfs_mountpoint="/livemnt/squashfs"
 squashfs_dst="customcd/files"
 portage_tree_name="portage-latest.tar.xz"
 
+source "$( dirname "${BASH_SOURCE[0]}" )/functions.sh"
+
 do_squashfs()
 {
 	local squashfs_exclude="${squashfs_dst}/usr/portage ${squashfs_dst}/var/cache/ ${squashfs_dst}/proc ${squashfs_dst}/dev ${squashfs_dst}/sys"
-	test -n "${1}" && local squashfs_outdir="${1}" || local squashfs_outdir=${work_dir}
+	test $# -gt 0 && local squashfs_outdir="${1}" || local squashfs_outdir=${work_dir}
 
 	[ "$(freespace ${squashfs_outdir})" -lt 400 ] && { echo "${FUNCNAME[0]}: Not enough room in ${squashfs_outdir}"; return 1; }
 
@@ -30,13 +31,10 @@ do_squashfs()
 	for curfs in proc; do
 		local curpath="${squashfs_dst}/${curfs}"
 		local dircnt="$(ls -A ${curpath} 2>/dev/null | wc -l)"
-		if [ ${dircnt} -gt 0 ]; then
-			echo "${FUNCNAME[0]}: The directory ${curpath} must be empty"
-			return 1
-		fi
+		[ ${dircnt} -gt 0 ] && { echo "${FUNCNAME[0]}: The directory ${curpath} must be empty";	return 1; }
 	done
 
-	try "mksquashfs ${squashfs_dst}/ ${squashfs_outdir}/${squashfs_name} -e ${squashfs_exclude}"
+	try mksquashfs ${squashfs_dst}/ ${squashfs_outdir}/${squashfs_name} -e ${squashfs_exclude}
 
 	md5sum ${squashfs_outdir}/${squashfs_name} > ${squashfs_outdir}/${squashfs_name%????}.md5
 
@@ -48,30 +46,27 @@ do_isogen()
 {
 	curtime="$(date +%Y%m%d-%H%M)"
 	ISO_VOLUME="SYSRESCCD"
-	test -n "${1}" && local iso_outdir="${1}" || local iso_outdir="${work_dir}"
+	test $# -gt 0 && local iso_outdir="${1}" || local iso_outdir="${work_dir}"
 
 	# check for free space
-	[ "$(freespace ${iso_outdir})" -lt 500 ] && { echo "Not enough room in ${iso_outdir}"; return 1 }
+	[ "$(freespace ${iso_outdir})" -lt 500 ] && { echo "Not enough room in ${iso_outdir}"; return 1; }
 
 	# ---- copy critical files and directories
 	for curfile in version isolinux
 	do
-		copy_files "/livemnt/boot/${curfile} ${iso_outdir}" || echo "${FUNCNAME[0]}: cannot copy ${curfile} to ${iso_outdir}"
+		scp "/livemnt/boot/${curfile} ${iso_outdir}" || echo "${FUNCNAME[0]}: cannot copy ${curfile} to ${iso_outdir}"
 	done
 
 	# ---- copy optionnal files and directories
 	for curfile in boot bootprog bootdisk efi ntpasswd usb_inst usb_inst.sh usbstick.htm
 	do
-		copy_files "/livemnt/boot/${curfile} ${iso_outdir}" || echo "${FUNCNAME[0]}: cannot copy ${curfile} to ${iso_outdir} (non critical error, maybe be caused by \"docache\")"
+		scp "/livemnt/boot/${curfile} ${iso_outdir}" || echo "${FUNCNAME[0]}: cannot copy ${curfile} to ${iso_outdir} (non critical error, maybe be caused by \"docache\")"
 	done
 
-	if [ ! -d "${iso_outdir}/isolinux" ]; then
-		echo "${FUNCNAME[0]}: you must create a squashfs filesystem before making iso"
-		return 1
-	fi
+	[ -d "${iso_outdir}/isolinux" ] || { echo "${FUNCNAME[0]}: you must create a squashfs filesystem before making iso"; return 1; }
 
 	# Set keymap in isolinux.cfg
-	if ! [ -z ${KEYMAP} ]; then
+	if [ -n "${KEYMAP}" ]; then
 		echo "Keymap to be loaded: ${KEYMAP}"
 		copy_files "${iso_outdir}/isolinux/isolinux.cfg ${iso_outdir}/isolinux/isolinux.bak"
 		sed -i -r -e "s: setkmap=[a-z0-9]+::g ; s:APPEND:APPEND setkmap=${KEYMAP}:gi" ${iso_outdir}/isolinux/isolinux.cfg
@@ -85,70 +80,56 @@ do_isogen()
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
 		-eltorito-alt-boot -e boot/grub/efi.img -no-emul-boot \
 		-o ${iso_outdir}/sysresccd-${curtime}.iso \
-		-volid ${ISO_VOLUME} ${iso_outdir}" || echo "${FUNCNAME[0]}: mkisofs failed"; return 1
+		-volid ${ISO_VOLUME} ${iso_outdir}" || { echo "${FUNCNAME[0]}: mkisofs failed"; return 1; }
 
 	md5sum ${iso_outdir}/sysresccd-${curtime}.iso > ${iso_outdir}/sysresccd-${curtime}.md5
 
 	echo "Final ISO image: ${iso_outdir}/sysresccd-${curtime}.iso"
 }
 
+printf "\nThis script helps to customize sysrescuecd.\n"
 
-echo
-echo "This script helps to customize sysrescuecd."
-
-printf "\n\nThis script helps to customize sysrescuecd."
-
-let step+=1
-execution_premission "${step}. Sure you want to run this? " || die
+execution_premission "Sure you want to run this? " || die
 
 #execution_premission "Create ${work_dir}?" && { mkdir -p ${work_dir} || die } || { die "Work directory not selected" }
 
-let step+=1; printf "\n${step}. Select directory you want to use as the installation mount point."
-dir_list=$(find /mnt/* -maxdepth 0 -type d)
-if select_options "${dir_list} new..."; then
-	if [ "${selected}" = "new..." ] ; then
-		read -p "Enter name of new directory " new_dir
-		try mkdir -p "/mnt/${new_dir}"
-		work_dir="/mnt/${new_dir}"
-	else
-		work_dir=${selected}
-	fi
+options="$(find /mnt/* -maxdepth 0 -type d) new..."
+if prompt_select "Select directory you want to use." ; then
+	case ${selected} in
+		"new...") work_dir=$(prompt_new_dir /mnt);;
+		*) work_dir=${selected};;
+	esac
 else
 	die
 fi
 
 fdisk -l
 
-part_list=$(find /dev/* -maxdepth 0 -name "sd??*" -or -name "hd??*")
-let step+=1; printf "\n${step}. Select work partition."
-if select_options "${part_list}"; then
+options=$(find /dev/* -maxdepth 0 -name "sd??*" -or -name "hd??*")
+if prompt_select "Select work partition."; then
 	work_part="${selected}"
-
-	if execution_premission "Format work partition? "; then
-		mkfs=$(find /sbin/* /usr/sbin/* -maxdepth 0 -name "mkfs.*")
-		if select_options "${mkfs}"; then
-			try ${selected}
-			echo
-			read -p "Enter additional params " params
-			try ${selected} ${params} ${work_part}
-		fi
-	fi
-
 	if execution_premission "Create filesystem container on work partition? "; then
-		echo "Mount work partition. ${tempfs%/*}"
-		try mount ${work_part} ${tempfs%/*}
-		cleanup wait_umount ${tempfs%/*}
-		cleanup umount -d ${tempfs%/*}
-		read -p "Enter size of new container " tempfs_size
+		echo "Mounting work partition ${tempfs%\/*}"
+		try mkdir -p ${tempfs%\/*}
+		try mount ${work_part} ${tempfs%\/*} && { cleanup wait_umount ${tempfs%\/*}; cleanup umount -d ${tempfs%\/*}; }
+		read -p "\nEnter size of new container " tempfs_size
 		echo "Creating filesystem container ${tempfs} of ${tempfs_size}M..."
-		try dd if=/dev/zero of=${tempfs} bs=1M count=${tempfs_size} || echo "Cannot create filesystem container ${tempfs} of ${tempfs_size}M"
-		try mount -o loop ${tempfs} ${work_dir}
+		pv -s ${tempfs_size}M /dev/zero | dd of=${tempfs} bs=1M count=${tempfs_size} conv=notrunc,noerror || echo "Cannot create filesystem container ${tempfs} of ${tempfs_size}M"
+		options=$(find /sbin/* /usr/sbin/* -maxdepth 0 -name "mkfs.*")
+		if prompt_select "Select filesystem"; then
+			${selected}
+			read -p "\nEnter additional params " params
+			try ${selected} ${params} ${tempfs}
+		fi
+		try mount -o loop ${tempfs} ${work_dir} && { cleanup wait_umount ${work_dir}; cleanup umount -d ${work_dir}; }
 	else
-		echo "Mount work partition. ${work_part}"
+		#if execution_premission "Format work partition? "; then
+		#fi
+		echo "Mounting work partition ${work_part}"
 		try mount ${work_part} ${work_dir}
 	fi
-	cleanup "wait_umount "${work_dir}
-	cleanup "umount -d "${work_dir}
+	cleanup wait_umount ${work_dir}
+	cleanup umount -d ${work_dir}
 
 else
 	die
@@ -157,29 +138,26 @@ fi
 squashfs_dst="${work_dir}/${squashfs_dst}"
 squashfs_src=$(find / -maxdepth 5 -size +200M -type f -name ${squashfs_name} -or -name *.squashfs)
 if [ -n "${squashfs_src}" ]; then
-	let step+=1; printf "\n${step}. Select source squashfs image "
-	if select_options "${stage_list} skip"; then
+	options="${squashfs_src} skip"
+	if prompt_select "Select source squashfs image: "; then
 		try mkdir "${squashfs_mountpoint}"
 		squashfs_src="${selected}"
 		try mount -t squashfs -o loop ${selected} ${squashfs_mountpoint}
 		try mkdir -p ${squashfs_dst}
-		rsync -ah --delete ${squashfs_mountpoint}/ ${squashfs_dst} || echo "Cannot copy the files from ${selected}"
+		try rsync -ah --delete ${squashfs_mountpoint}/ ${squashfs_dst} || echo "Cannot copy the files from ${selected}"
 	fi
 else
 	echo "No squashfs found on disk."
 fi
-
-msg="Download new portage tree?"
 
 snapshot_list="http://ftp.osuosl.org/pub/funtoo/funtoo-current/snapshots/${portage_tree_name} \
 http://mirror.yandex.ru/gentoo-distfiles/snapshots/${portage_tree_name} \
 http://gentoo.osuosl.org/snapshots/${portage_tree_name}"
 
 if [ -n "${snapshot_list}" ]; then
-	let step+=1; printf "\n${step}. Download new portage tree? "
-	if select_options "${snapshot_list} skip"; then
-		try "curl --progress-bar -o ${work_dir}/${portage_tree_name} ${selected}" || echo "Cannot download new portage tree from ${selected}"
-		cleanup "rm -r ${work_dir}/${portage_tree_name}"
+	options="${snapshot_list} skip"
+	if select_options "Select new portage tree to download? "; then
+		try curl --progress-bar -o -L ${work_dir}/${portage_tree_name} -C - ${selected} && { cleanup rm -r ${work_dir}/${portage_tree_name}; } || echo "Cannot download new portage tree from ${selected}"
 	fi
 else
 	echo "Using snapshots found on disk."
@@ -187,69 +165,64 @@ fi
 
 snapshot_list=$(find / -maxdepth 5 -type f -name "portage-*.tar.*")
 if [ -n "${snapshot_list}" ]; then
-	let step+=1; printf "\n${step}. Extract new portage tree? "
-	if select_options "${snapshot_list} skip"; then
-		decrunch "${selected} ${squashfs_dst}/usr/" || echo "Cannot extract the files from the ${selected}"
-		cleanup "rm -r ${squashfs_dst}/usr/portage"
+	options="${snapshot_list} skip"
+	if select_options "Extract new portage tree? "; then
+		decrunch ${selected} ${squashfs_dst}/usr/ && cleanup rm -r ${squashfs_dst}/usr/portage || echo "Cannot extract the files from the ${selected}"
 	fi
 else
 	echo "No snapshots found on disk."
 fi
 
 if execution_premission "Chroot in the sysresccd environment? "; then
-	make_dir ${squashfs_dst}/proc
-	make_dir ${squashfs_dst}/dev
-	make_dir ${squashfs_dst}/sys
-	do_mount "-o bind /proc ${squashfs_dst}/proc"
-	do_mount "-o bind /dev ${squashfs_dst}/dev"
-	do_mount "-o bind /sys ${squashfs_dst}/sys"
+	try mkdir -p ${squashfs_dst}/proc
+	try mkdir -p ${squashfs_dst}/dev
+	try mkdir -p ${squashfs_dst}/sys
+	try mount -o bind /proc ${squashfs_dst}/proc
+	try mount -o bind /dev ${squashfs_dst}/dev
+	try mount -o bind /sys ${squashfs_dst}/sys
 
 	echo "Now you are in chrooted environment."
 	echo "You can emerge some packages as usual."
 
-	#cp -L /etc/resolv.conf ${squashfs_dst}/etc/
-	chroot ${squashfs_dst} /bin/bash -c "env-update; source /etc/profile; gcc-config \$(gcc-config -c); "
-	chroot ${squashfs_dst} /bin/bash
-	chroot ${squashfs_dst} /bin/bash -c "sysresccd-cleansys devtools; rm -rf /var/log/* /usr/sbin/sysresccd-* /usr/share/sysreccd"
+	#scp -L /etc/resolv.conf ${squashfs_dst}/etc/
+	try chroot ${squashfs_dst} env-update; source /etc/profile; gcc-config $(gcc-config -c); /bin/bash
+	try chroot ${squashfs_dst} /bin/bash -c "sysresccd-cleansys devtools; rm -rf /var/log/* /usr/sbin/sysresccd-* /usr/share/sysreccd"
 fi
 
 dir_list=$(find /mnt -maxdepth 2 -type d)
 if [ -n "${dir_list}" ]; then
-	let step+=1; printf "\n${step}. Select directory you want to use for output ${squashfs_name}. "
-
-	dialog "${dir_list} new..."
-	if [ "${selected}" = "new..." ]; then
-		read -p "Enter name of new directory in /mnt " new_dir
-		make_dir "/mnt/${new_dir}"
-		output=/mnt/${new_dir}
+	options="${dir_list} new..."
+	if prompt_select "Select directory you want to use for output ${squashfs_name}. "; then
+		case ${selected} in
+			"new...") work_dir=$(prompt_new_dir /mnt);;
+			*) work_dir=${selected};;
+		esac
 	else
-		output=${selected}
+		die
 	fi
+fi
 
-msg="Create new ${squashfs_name}?"
-dialog
+if execution_premission "Create new ${squashfs_name}?"; then
 	umount -d ${squashfs_dst}/proc
 	do_squashfs ${output}
+fi
 
-msg="Select default keymap"
-keymaps=$(find /livemnt/boot/isolinux/maps/* -maxdepth 0 -type f -name "*.ktl" -printf "%f\n" | sed -e "s!.ktl!!g")
-dialog "${keymaps}"
+options=$(find /livemnt/boot/isolinux/maps/* -maxdepth 0 -type f -name "*.ktl" -printf "%f\n" | sed -e "s!.ktl!!g")
+if prompt_select "Select default keymap"; then
 	KEYMAP=${selected}
+fi
 
-msg="Select directory you want to use for output iso."
-dir_list=$(find /mnt -maxdepth 2 -type d)
-dialog "${dir_list} new..."
-	if [ "${selected}" = "new..." ]; then
-		read -p "Enter name of new directory in /mnt " new_dir
-		make_dir "/mnt/${new_dir}"
-		output=/mnt/${new_dir}
-	else
-		output=${selected}
-	fi
+options="$(find /mnt -maxdepth 2 -type d) new..."
+if prompt_select "Select directory you want to use for output iso."; then
+	case ${selected} in
+		"new...") work_dir=$(prompt_new_dir /mnt);;
+		*) work_dir=${selected};;
+	esac
+fi
 
-msg="Create new ISO image?"
-dialog
+if execution_premission "Create new ISO image?"; then
 	do_isogen ${output}
+fi
 
-do_cleanup
+proceed_cleanup
 exit 0
