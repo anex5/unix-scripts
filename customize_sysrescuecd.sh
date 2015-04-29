@@ -54,7 +54,7 @@ do_isogen()
 	# ---- copy critical files and directories
 	for curfile in version isolinux
 	do
-		scp "/livemnt/boot/${curfile} ${iso_outdir}" || echo "${FUNCNAME[0]}: cannot copy ${curfile} to ${iso_outdir}"
+		scp "/livemnt/boot/${curfile} ${iso_outdir}" || { echo "${FUNCNAME[0]}: cannot copy ${curfile} to ${iso_outdir}"; return 1; }
 	done
 
 	# ---- copy optionnal files and directories
@@ -108,29 +108,30 @@ fdisk -l
 options=$(find /dev/* -maxdepth 0 -name "sd??*" -or -name "hd??*")
 if prompt_select "Select work partition."; then
 	work_part="${selected}"
-	if execution_premission "Create filesystem container on work partition? "; then
+	if execution_premission "Use filesystem container on work partition? "; then
 		echo "Mounting work partition ${tempfs%\/*}"
-		try mkdir -p ${tempfs%\/*}
+		try mkdir -p ${tempfs%\/*} && cleanup rm -r ${tempfs%\/*}
 		try mount ${work_part} ${tempfs%\/*} && { cleanup wait_umount ${tempfs%\/*}; cleanup umount -d ${tempfs%\/*}; }
-		read -p "\nEnter size of new container " tempfs_size
-		echo "Creating filesystem container ${tempfs} of ${tempfs_size}M..."
-		pv -s ${tempfs_size}M /dev/zero | dd of=${tempfs} bs=1M count=${tempfs_size} conv=notrunc,noerror || echo "Cannot create filesystem container ${tempfs} of ${tempfs_size}M"
-		options=$(find /sbin/* /usr/sbin/* -maxdepth 0 -name "mkfs.*")
-		if prompt_select "Select filesystem"; then
-			${selected}
-			read -p "\nEnter additional params " params
-			try ${selected} ${params} ${tempfs}
+		if [ ! -w ${tempfs} ]; then
+			echo
+			read -p "Enter size of new container (M) " tempfs_size
+			echo "Creating filesystem container ${tempfs} of ${tempfs_size}M..."
+			pv -EE -s ${tempfs_size}M -S -B 4k /dev/zero > ${tempfs} || echo "Cannot create filesystem container ${tempfs} of ${tempfs_size}M"
+			options=$(find /sbin/* /usr/sbin/* -maxdepth 0 -name "mkfs.*")
+			if prompt_select "Select filesystem"; then
+				${selected}
+				read -p "Enter additional params " params
+				try ${selected} ${params} ${tempfs}
+			fi
 		fi
+		echo "Mounting filesystem container ${tempfs}"
 		try mount -o loop ${tempfs} ${work_dir} && { cleanup wait_umount ${work_dir}; cleanup umount -d ${work_dir}; }
 	else
 		#if execution_premission "Format work partition? "; then
 		#fi
 		echo "Mounting work partition ${work_part}"
-		try mount ${work_part} ${work_dir}
+		try mount ${work_part} ${work_dir} && { cleanup wait_umount ${work_dir}; cleanup umount -d ${work_dir}; }
 	fi
-	cleanup wait_umount ${work_dir}
-	cleanup umount -d ${work_dir}
-
 else
 	die
 fi
@@ -144,7 +145,7 @@ if [ -n "${squashfs_src}" ]; then
 		squashfs_src="${selected}"
 		try mount -t squashfs -o loop ${selected} ${squashfs_mountpoint}
 		try mkdir -p ${squashfs_dst}
-		try rsync -ah --delete ${squashfs_mountpoint}/ ${squashfs_dst} || echo "Cannot copy the files from ${selected}"
+		rsync -atiH ${squashfs_mountpoint}/* ${squashfs_dst} | pv -s $(df -i ${squashfs_mountpoint} | tail -n 1 | awk '{print $3}') > /dev/null || echo "Cannot copy the files from ${selected}"
 	fi
 else
 	echo "No squashfs found on disk."
@@ -156,8 +157,8 @@ http://gentoo.osuosl.org/snapshots/${portage_tree_name}"
 
 if [ -n "${snapshot_list}" ]; then
 	options="${snapshot_list} skip"
-	if select_options "Select new portage tree to download? "; then
-		try curl --progress-bar -o -L ${work_dir}/${portage_tree_name} -C - ${selected} && { cleanup rm -r ${work_dir}/${portage_tree_name}; } || echo "Cannot download new portage tree from ${selected}"
+	if prompt_select "Select new portage tree to download? "; then
+		try curl --progress-bar -L -o ${work_dir}/${portage_tree_name} -C - ${selected} && { cleanup rm -r ${work_dir}/${portage_tree_name}; } || echo "Cannot download new portage tree from ${selected}"
 	fi
 else
 	echo "Using snapshots found on disk."
@@ -166,8 +167,8 @@ fi
 snapshot_list=$(find / -maxdepth 5 -type f -name "portage-*.tar.*")
 if [ -n "${snapshot_list}" ]; then
 	options="${snapshot_list} skip"
-	if select_options "Extract new portage tree? "; then
-		decrunch ${selected} ${squashfs_dst}/usr/ && cleanup rm -r ${squashfs_dst}/usr/portage || echo "Cannot extract the files from the ${selected}"
+	if prompt_select "Extract new portage tree? "; then
+		decrunch "${selected}" "${squashfs_dst}/usr/" && cleanup rm -r ${squashfs_dst}/usr/portage || echo "Cannot extract the files from the ${selected}"
 	fi
 else
 	echo "No snapshots found on disk."
@@ -186,42 +187,43 @@ if execution_premission "Chroot in the sysresccd environment? "; then
 
 	#scp -L /etc/resolv.conf ${squashfs_dst}/etc/
 	try chroot ${squashfs_dst} env-update; source /etc/profile; gcc-config $(gcc-config -c); /bin/bash
-	try chroot ${squashfs_dst} /bin/bash -c "sysresccd-cleansys devtools; rm -rf /var/log/* /usr/sbin/sysresccd-* /usr/share/sysreccd"
-fi
-
-dir_list=$(find /mnt -maxdepth 2 -type d)
-if [ -n "${dir_list}" ]; then
-	options="${dir_list} new..."
-	if prompt_select "Select directory you want to use for output ${squashfs_name}. "; then
-		case ${selected} in
-			"new...") work_dir=$(prompt_new_dir /mnt);;
-			*) work_dir=${selected};;
-		esac
-	else
-		die
-	fi
+	try chroot ${squashfs_dst} sysresccd-cleansys devtools; rm -rf /var/log/* /usr/sbin/sysresccd-* /usr/share/sysreccd
 fi
 
 if execution_premission "Create new ${squashfs_name}?"; then
-	umount -d ${squashfs_dst}/proc
+	dir_list=$(find /mnt/* -maxdepth 1 -type d)
+	if [ -n "${dir_list}" ]; then
+		options="${dir_list} new..."
+		if prompt_select "Select directory you want to use for output ${squashfs_name}. "; then
+			case ${selected} in
+				"new...") output=$(prompt_new_dir /mnt);;
+				*) output=${selected};;
+			esac
+		else
+			die
+		fi
+	fi
+
+	try umount -d ${squashfs_dst}/proc
+	wait_umount ${squashfs_dst}/proc
 	do_squashfs ${output}
-fi
 
-options=$(find /livemnt/boot/isolinux/maps/* -maxdepth 0 -type f -name "*.ktl" -printf "%f\n" | sed -e "s!.ktl!!g")
-if prompt_select "Select default keymap"; then
-	KEYMAP=${selected}
-fi
+	if execution_premission "Create new ISO image?"; then
+		options=$(find /livemnt/boot/isolinux/maps/* -maxdepth 0 -type f -name "*.ktl" -printf "%f\n" | sed -e "s!.ktl!!g")
+		if prompt_select "Select default keymap"; then
+			KEYMAP=${selected}
+		fi
 
-options="$(find /mnt -maxdepth 2 -type d) new..."
-if prompt_select "Select directory you want to use for output iso."; then
-	case ${selected} in
-		"new...") work_dir=$(prompt_new_dir /mnt);;
-		*) work_dir=${selected};;
-	esac
-fi
+		options="$(find /mnt/* -maxdepth 1 -type d) new..."
+		if prompt_select "Select directory you want to use for output iso."; then
+			case ${selected} in
+				"new...") output=$(prompt_new_dir /mnt);;
+				*) output=${selected};;
+			esac
+		fi
 
-if execution_premission "Create new ISO image?"; then
-	do_isogen ${output}
+		do_isogen ${output}
+	fi
 fi
 
 proceed_cleanup

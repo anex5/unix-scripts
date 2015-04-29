@@ -26,7 +26,7 @@ execution_premission()
 decrunch()
 {
 	test $# -gt 0 || { echo "${FUNCNAME[0]}: No params given"; return 1; }
-	local params=($@)
+	local params=($*)
 	local params_count=${#params[*]}
 	local src="${params[params_count-2]}"
 	local dst="${params[params_count-1]}"
@@ -104,6 +104,7 @@ prompt_select(){
 }
 
 prompt_new_dir(){
+	echo
 	read -p "Enter name of new directory " new_dir
 	try "mkdir -p ${@}/${new_dir}" && { echo ${@}/${new_dir}; return 0; } || return 1
 }
@@ -151,7 +152,7 @@ try()
 
 freespace()
 {
-	test -n "${1}" || { echo "${FUNCNAME[0]}: No params given"; return 1; }
+	test $# -gt 0 || { echo "${FUNCNAME[0]}: No params given"; return 1; }
 	echo $(df -m -P ${1} | grep " ${1}$" | tail -n 1 | awk '{print $4}')
 	return $?
 }
