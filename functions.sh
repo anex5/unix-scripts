@@ -131,7 +131,7 @@ check_dir()
 is_mounted()
 {
 	test $# -gt 0 || { echo "${FUNCNAME[0]}: No params given"; return 1; }
-	if cat /proc/mounts | grep -q "${1}"; then return 0; else return 1; fi
+	[ -n "$(cat /proc/mounts | grep -q ${1})" ] && { return 0; } || { return 1; }
 }
 
 die()
@@ -155,4 +155,27 @@ freespace()
 	test $# -gt 0 || { echo "${FUNCNAME[0]}: No params given"; return 1; }
 	echo $(df -m -P ${1} | grep " ${1}$" | tail -n 1 | awk '{print $4}')
 	return $?
+}
+
+fstabgen()
+{
+	local mountpoint=
+	local opt=
+	local dump=
+	local pass=
+	local part=
+
+	for param in ${1}
+	do
+		IFS=':'
+		read -r part mountpoint opt dump pass <<< "${param}"
+		IFS=$XIFS
+		#echo part=${part} mountpoint=${mountpoint} opt=${opt} dump=${dump} pass=${pass}
+		if [ -n "${part}" ]; then
+			part_uuid="$(blkid -o value -s UUID ${part})"
+			fstype="$(blkid -o value -s TYPE ${part})"
+			#echo -e "UUID=${part_uuid}\t${mountpoint}\t\t${fstype}\t\t${opt}\t\t${dump}\t\t${pass}"
+			echo -e "\nUUID=${part_uuid}\t${mountpoint}\t${fstype}\t${opt}\t${dump}\t${pass}" >> "${2}"
+		fi
+	done
 }

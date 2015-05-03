@@ -1,0 +1,18 @@
+CHOST="x86_64-pc-linux-gnu"
+CFLAGS="-O2 -pipe"
+CXXFLAGS="${CFLAGS}"
+CC="gcc"
+CXX="g++"
+MAKEOPTS="-j2"
+FEATURES=""
+SYNC="git://github.com/funtoo/ports-2012.git"
+
+USE="-gnome -gtk -kde -kdeenablefinal -ldap nls -qt3 -qt3support -qt4 userlocales"
+GENTOO_MIRRORS="http://mirror.yandex.ru/gentoo-distfiles/distfiles/ ftp://mirror.csclub.uwaterloo.ca/gentoo-distfiles/ http://distfiles.gentoo.org"
+
+LINGUAS="ru en"
+INPUT_DEVICES="evdev synaptics "
+VIDEO_CARDS="vesa radeon"
+PORT_LOGDIR="/var/log/portage"
+PORTAGE_ELOG_CLASSES="log warn error info"
+PORTAGE_ELOG_SYSTEM="echo:log,warn save:log,warn,error,info syslog:error"

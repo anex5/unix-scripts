@@ -1,0 +1,5 @@
+# <file system>	<dir>	<type>	<options>	<dump>	<pass>
+tmpfs	/tmp	tmpfs	defaults,nodev,nosuid,mode=1777	0	0
+tmpfs	/var/lock	tmpfs	defaults,nodev,nosuid,noexec,mode=1777,size=10m	0	0
+tmpfs	/var/run	tmpfs	defaults,nodev,nosuid,noexec,mode=0755,size=10m	0	0
+# curlftpfs#ftp://mirror.yandex.ru/gentoo-distfiles/distfiles.local	/mnt/portage/distfiles	fuse	allow_other,uid=1000,gid=1000,umask=0022	0	0
