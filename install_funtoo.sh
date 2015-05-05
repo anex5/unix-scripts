@@ -4,6 +4,7 @@ stage_name="stage3-latest.tar.xz"
 stage_site="build.funtoo.org/funtoo-current/"
 base_dir=$( dirname "${BASH_SOURCE[0]}" )
 saved_file="$( basename "${BASH_SOURCE[0]}" ).prev"
+tempfs="/mnt/tempfs/fsimage"
 write_save=1
 work_dir=""
 root_part=""
@@ -18,6 +19,7 @@ printf "\nThis script helps to install funtoo"
 execution_premission "Sure you want to run this? " || die
 if [ -f ${saved_file} ]; then
 	execution_premission "Continue previous installation?" && source ${saved_file} || echo "" > ${saved_file}
+	cleanup rm -r ${saved_file}
 fi
 
 if ! [ -a "${work_disk}" ]; then
@@ -28,13 +30,36 @@ if ! [ -a "${work_disk}" ]; then
 		test ${write_save} && { save_var "work_disk" ${saved_file}; }
 	fi
 
+	if ! [ -a "${work_part}" ]; then
+		if execution_premission "Use virtual disk image on work disk? "; then
+			options="$(find "${work_disk%\/*}" -maxdepth 1 -name "${work_disk##*\/}?*")"
+			if prompt_select "Select partition for ${tempfs}."; then
+				work_part="${selected}"
+				test ${write_save} && { save_var "work_part" ${saved_file}; }
+			fi
+			echo "Mounting work partition ${tempfs%\/*}"
+			try mkdir -p ${tempfs%\/*} && cleanup rm -r ${tempfs%\/*}
+			try mount ${work_part} ${tempfs%\/*} && { cleanup wait_umount ${tempfs%\/*}; cleanup umount ${tempfs%\/*}; }
+			if [ ! -w ${tempfs} ]; then
+				echo
+				read -p "Enter size of new virtual disk image (M) " tempfs_size
+				echo "Creating virtual disk image ${tempfs} of ${tempfs_size}M..."
+				pv -EE -s ${tempfs_size}M -S -B 4k /dev/zero > ${tempfs} || echo "Cannot create virtual disk image ${tempfs} of ${tempfs_size}M"
+			fi
+		fi
+		work_disk="/dev/loop1"
+		try losetup ${work_disk} ${tempfs} && cleanup losetup -d ${work_disk}
+		try kpartx -a -v ${tempfs} && cleanup kpartx -d ${tempfs}
+		work_disk="/dev/mapper/loop1"
+	fi
+
 	options="fdisk gdisk skip"
 	if prompt_select "Select partitioning programm."; then
 		try ${selected} ${work_disk}
 	fi
 fi
 
-if ! [ -d "${work_dir}" ];then
+if ! [ -d "${work_dir}" ]; then
 	options="$(find /mnt/* -maxdepth 0 -type d) new..."
 	if prompt_select "Select directory you want to use as the installation mount point."; then
 		case ${selected} in
@@ -45,20 +70,13 @@ if ! [ -d "${work_dir}" ];then
 	fi
 fi
 
-part_list="$(find "${work_disk%????}" -maxdepth 1 -name "${work_disk: -3}?")"
+part_list="$(find "${work_disk%\/*}" -maxdepth 1 -name "${work_disk##*\/}?*")"
 
 if ! [ -a "${root_part}" ]; then
 	options="${part_list}"
 	if prompt_select "Select root partition."; then
 		root_part="${selected}"
-		if execution_premission "Format root partition? "; then
-			options=$(find /sbin/* /usr/sbin/* -maxdepth 0 -name "mkfs.*")
-			if prompt_select "Select filesystem"; then
-				"${selected}"
-				read -p "Enter additional params " params
-				try "${selected} ${params} ${root_part}"
-			fi
-		fi
+		prompt_format ${selected}
 		test ${write_save} && { save_var "root_part" ${saved_file}; }
 	else
 		die
@@ -91,9 +109,15 @@ if ! [ -a "${swap_part}" ]; then
 fi
 
 printf "Mounting partitions. \n"
-try mount ${root_part} ${work_dir} && { cleanup wait_umount ${work_dir}; cleanup umount ${work_dir}; }
-try mkdir -p ${work_dir}/boot
-try mount ${boot_part} ${work_dir}/boot && { cleanup wait_umount ${work_dir}/boot; cleanup umount ${work_dir}/boot; }
+#if [ -w "${work_disk}" ]; then
+#	try mount -o loop ${root_part} ${work_dir} && { cleanup wait_umount ${work_dir}; cleanup umount -d ${work_dir}; }
+#	try mkdir -p ${work_dir}/boot
+#	try mount ${boot_part} ${work_dir}/boot && { cleanup wait_umount ${work_dir}/boot; cleanup umount ${work_dir}/boot; }
+#else
+	try mount ${root_part} ${work_dir} && { cleanup wait_umount ${work_dir}; cleanup umount -d ${work_dir}; }
+	try mkdir -p ${work_dir}/boot
+	try mount ${boot_part} ${work_dir}/boot && { cleanup wait_umount ${work_dir}/boot; cleanup umount -d ${work_dir}/boot; }
+#fi
 
 if ! [ -f "${stage}" ]; then
 	if execution_premission "Download new stage?"; then
@@ -121,30 +145,45 @@ if ! [ -x "${work_dir}/bin/bash" ]; then
 	fi
 fi
 
-read -p "Enter new password for root " password
-echo "root:$(openssl passwd -1 ${password}):$(( $(date +%s)/86400 )):0:::::" >> ${work_dir}/etc/shadow
-
-read -p "Enter hostname " hostname
-echo ${hostname} >> ${work_dir}/etc/conf.d/hostname
-
-zoneinfo="${work_dir}/usr/share/zoneinfo"
-options="$(find ${zoneinfo}/* -maxdepth 2 -type f ! -name "*.*" | sed -e "s|${zoneinfo}||g") skip"
-if prompt_select "Select timezone? "; then
-	try ln -sf ${zoneinfo}/${selected} ${work_dir}/etc/localtime || echo "Cannot set timezone ${selected}"
+if [ -z "${password}" ]; then
+	read -p "Enter new password for root " password
+	echo "root:$(openssl passwd -1 ${password}):$(( $(date +%s)/86400 )):0:::::" >> ${work_dir}/etc/shadow
+	test ${write_save} && { save_var "password" ${saved_file}; }
 fi
 
-options="$(cat /usr/share/i18n/SUPPORTED | grep '.UTF-8' | sed -e "s|'UTF-8'||g") "
-if prompt_select "Select language? "; then
-	echo "LANG=${selected}" > ${work_dir}/etc/env.d/02locales
-	echo "LANGUAGE=${selected}" > ${work_dir}/etc/env.d/02locales
-	echo "${selected} UTF-8" > ${work_dir}/etc/locale.gen
+if [ -z "${hostname}" ]; then
+	read -p "Enter hostname " hostname
+	echo ${hostname} >> ${work_dir}/etc/conf.d/hostname
+	test ${write_save} && { save_var "hostname" ${saved_file}; }
+fi
+
+if [ -z "${timezone}" ]; then
+	zoneinfo="${work_dir}/usr/share/zoneinfo"
+	options="$(find ${zoneinfo}/* -maxdepth 2 -type f ! -name "*.*" | sed -e "s|${zoneinfo}||g") skip"
+	if prompt_select "Select timezone? "; then
+		timezone=${selected}
+		try ln -sf ${zoneinfo}/${timezone} ${work_dir}/etc/localtime || echo "Cannot set timezone ${selected}"
+		test ${write_save} && { save_var "timezone" ${saved_file}; }
+	fi
+fi
+
+if [ -z "${locale}" ]; then
+	options="$(cat /usr/share/i18n/SUPPORTED | sed -e "s| UTF-8||g" | grep 'UTF-8') skip"
+	if prompt_select "Select language? "; then
+		locale=${selected}
+		echo "LANG=${locale}" >> ${work_dir}/etc/env.d/02locales
+		echo "LANGUAGE=${locale}" >> ${work_dir}/etc/env.d/02locales
+		echo "${locale} UTF-8" >> ${work_dir}/etc/locale.gen
+		test ${write_save} && { save_var "locale" ${saved_file}; }
+	fi
 fi
 
 if execution_premission "Install config files? "; then
 	pv ${base_dir}/fstab.template > ${work_dir}/etc/fstab
 	fstabgen "${root_part}:/:defaults:0:1 ${boot_part}:/boot:noauto,noatime:1:2 ${swap_part}:swap:sw:0:0" "${work_dir}/etc/fstab"
 	pv ${base_dir}/make.conf.template > ${work_dir}/etc/portage/make.conf
-
+	echo "MAKEOPTS=\"-j$(( $(nproc)+1 ))\"" >> ${work_dir}/etc/portage/make.conf
+	echo "LINGUAS=\"${locale:0:2}\"" >> ${work_dir}/etc/portage/make.conf
 	pv /etc/resolv.conf > ${work_dir}/etc/resolv.conf
 fi
 

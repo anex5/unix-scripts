@@ -146,7 +146,7 @@ try()
 {
 	test $# -gt 0 || { echo "${FUNCNAME[0]}: No params given"; return 1; }
 	printf "$*\n"
-	$* || printf "\n$* exit with error code $?\n"
+	$* || printf "\n${1} exit with error code $?\n"
 	return $?
 }
 
@@ -154,6 +154,20 @@ freespace()
 {
 	test $# -gt 0 || { echo "${FUNCNAME[0]}: No params given"; return 1; }
 	echo $(df -m -P ${1} | grep " ${1}$" | tail -n 1 | awk '{print $4}')
+	return $?
+}
+
+prompt_format()
+{
+	local params
+	if execution_premission "Format partition ${1}? "; then
+		options=$(find /sbin/* /usr/sbin/* -maxdepth 0 -name "mkfs.*")
+		if prompt_select "Select filesystem"; then
+			"${selected}"
+			read -p "Enter additional params " params
+			try "${selected} ${params} ${1}"
+		fi
+	fi
 	return $?
 }
 
