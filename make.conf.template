@@ -3,15 +3,27 @@ CFLAGS="-O2 -pipe"
 CXXFLAGS="${CFLAGS}"
 CC="gcc"
 CXX="g++"
-#MAKEOPTS="-j$(( $(nproc)+1 ))"
-FEATURES=""
+#MAKEOPTS="-j$(( $(nproc)+1 )) --quiet"
+FEATURES="${FEATURES} -sandbox metadata-transfer buildpkg ccache nodoc noinfo"
 SYNC="git://github.com/funtoo/ports-2012.git"
 
-USE="-gnome -gtk -kde -kdeenablefinal -ldap nls -qt3 -qt3support -qt4 userlocales"
+USE="-build -epydoc -doc -gnome -gtk -kde -kdeenablefinal -ldap -qt3 -qt3support -qt4 -consolekit -pam -policykit -X nls userlocales"
 GENTOO_MIRRORS="http://mirror.yandex.ru/gentoo-distfiles/distfiles/ ftp://mirror.csclub.uwaterloo.ca/gentoo-distfiles/ http://distfiles.gentoo.org"
 
-INPUT_DEVICES="evdev synaptics "
-VIDEO_CARDS="vesa radeon"
+EMERGE_DEFAULT_OPTS="--quiet-build=y --ask --read-news=n --tree --with-bdeps=y --autounmask-write=y --deep --jobs=2"
+
+INPUT_DEVICES="evdev mouse keyboard"
+VIDEO_CARDS="vesa fbdev"
+ALSA_CARDS="snd-hda-intel"
+
+PYTHON_TARGETS="python2_7 python3_3"
+PYTHON_SINGLE_TARGET="python3_3"
+
+PORTDIR="/usr/portage"
+DISTDIR="${PORTDIR}/distfiles"
+PKGDIR="${PORTDIR}/packages"
 PORT_LOGDIR="/var/log/portage"
 PORTAGE_ELOG_CLASSES="log warn error info"
 PORTAGE_ELOG_SYSTEM="echo:log,warn save:log,warn,error,info syslog:error"
+PORTAGE_NICENESS=19
+source /var/lib/layman/make.conf

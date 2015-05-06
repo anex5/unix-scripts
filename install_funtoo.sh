@@ -46,11 +46,11 @@ if ! [ -a "${work_disk}" ]; then
 				echo "Creating virtual disk image ${tempfs} of ${tempfs_size}M..."
 				pv -EE -s ${tempfs_size}M -S -B 4k /dev/zero > ${tempfs} || echo "Cannot create virtual disk image ${tempfs} of ${tempfs_size}M"
 			fi
+			work_disk="/dev/loop1"
+			try losetup ${work_disk} ${tempfs} && cleanup losetup -d ${work_disk}
+			try kpartx -a -v ${tempfs} && cleanup kpartx -d ${tempfs}
+			work_disk="/dev/mapper/loop1"
 		fi
-		work_disk="/dev/loop1"
-		try losetup ${work_disk} ${tempfs} && cleanup losetup -d ${work_disk}
-		try kpartx -a -v ${tempfs} && cleanup kpartx -d ${tempfs}
-		work_disk="/dev/mapper/loop1"
 	fi
 
 	options="fdisk gdisk skip"
@@ -108,25 +108,22 @@ if ! [ -a "${swap_part}" ]; then
 	fi
 fi
 
-printf "Mounting partitions. \n"
-#if [ -w "${work_disk}" ]; then
-#	try mount -o loop ${root_part} ${work_dir} && { cleanup wait_umount ${work_dir}; cleanup umount -d ${work_dir}; }
-#	try mkdir -p ${work_dir}/boot
-#	try mount ${boot_part} ${work_dir}/boot && { cleanup wait_umount ${work_dir}/boot; cleanup umount ${work_dir}/boot; }
-#else
-	try mount ${root_part} ${work_dir} && { cleanup wait_umount ${work_dir}; cleanup umount -d ${work_dir}; }
-	try mkdir -p ${work_dir}/boot
-	try mount ${boot_part} ${work_dir}/boot && { cleanup wait_umount ${work_dir}/boot; cleanup umount -d ${work_dir}/boot; }
-#fi
+printf "\nMounting partitions. \n"
+try mount ${root_part} ${work_dir} && { cleanup wait_umount ${work_dir}; cleanup umount -d ${work_dir}; }
+try mkdir -p ${work_dir}/boot
+try mount ${boot_part} ${work_dir}/boot && { cleanup wait_umount ${work_dir}/boot; cleanup umount -d ${work_dir}/boot; }
+
 
 if ! [ -f "${stage}" ]; then
 	if execution_premission "Download new stage?"; then
 		printf "\nLoading file list..."
-		stage_list=$(wget -r -np --spider -l6 -A ${stage_name} ${stage_site} 2>&1 | grep -Eio http.+${stage_name})
-		cleanup "rm -r ${stage_site}"
+		stage_list=$(wget -m -r -np -nd -e robots=off --spider -l4 -A ${stage_name} ${stage_site} 2>&1 | grep -Eio http.+${stage_name})
+		#cleanup "rm -r ${stage_site}"
 		options="${stage_list} skip"
 		if prompt_select "Select stage to download."; then
-			try curl --progress-bar -L -o ${work_dir}/${stage_name} -C - ${selected} && cleanup rm -r ${work_dir}/${stage_name}
+			try download ${selected} ${work_dir} && cleanup rm -r "${work_dir}/${selected##*\/}" || echo "Cannot download ${selected}"
+			try download ${selected}".hash.txt" ${work_dir} && cleanup rm -r "${work_dir}/${selected##*\/}.hash.txt" || echo "Cannot download ${selected}.hash.txt"
+			try echo $(cat ${work_dir}/${selected##*\/}.hash.txt | awk '{ print $2 }') ${work_dir}/${selected##*\/} | sha256sum -c -
 		fi
 	fi
 fi
@@ -182,8 +179,8 @@ if execution_premission "Install config files? "; then
 	pv ${base_dir}/fstab.template > ${work_dir}/etc/fstab
 	fstabgen "${root_part}:/:defaults:0:1 ${boot_part}:/boot:noauto,noatime:1:2 ${swap_part}:swap:sw:0:0" "${work_dir}/etc/fstab"
 	pv ${base_dir}/make.conf.template > ${work_dir}/etc/portage/make.conf
-	echo "MAKEOPTS=\"-j$(( $(nproc)+1 ))\"" >> ${work_dir}/etc/portage/make.conf
-	echo "LINGUAS=\"${locale:0:2}\"" >> ${work_dir}/etc/portage/make.conf
+	echo "MAKEOPTS=\"-j$(( $(nproc)+1 )) --quiet\"" >> ${work_dir}/etc/portage/make.conf
+	echo "LINGUAS=\"en ${locale:0:2}\"" >> ${work_dir}/etc/portage/make.conf
 	pv /etc/resolv.conf > ${work_dir}/etc/resolv.conf
 fi
 

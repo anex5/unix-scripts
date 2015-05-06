@@ -56,6 +56,16 @@ decrunch()
 	fi
 }
 
+download()
+{
+	local url="${1}"
+	local filename="${1##*\/}"
+	local dst="${2}"
+	local d_size="$(curl -sI ${url} | awk '/Content-Length/ { print $2 }')"
+	curl -s -L -C - ${url} | pv -s ${d_size:0: -1} > ${dst}/${filename}
+	return $?
+}
+
 wait_umount()
 {
 	test $# -gt 0 || { echo "${FUNCNAME[0]}: No params given"; return 1; }
