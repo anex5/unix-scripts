@@ -66,6 +66,23 @@ download()
 	return $?
 }
 
+tune_config()
+{
+	local cfg_prefix="._cfg0000_"
+	local params=($*)
+	local params_count=${#params[*]}
+	local variable="${1}"
+	local val="${params[params_count-2]}"
+	local filename="${params[params_count-1]}"
+	if [ "${variable}" == "${value}" ]; then
+		cmd="/${variable}/ p"
+	else
+		cmd="s|^\(${variable}\).*|\1${val}|"
+	fi
+	sed -e ${cmd} ${filename} > ${filename/${filename##*\/}/${cfg_prefix}${filename##*\/}}
+	return $?
+}
+
 wait_umount()
 {
 	test $# -gt 0 || { echo "${FUNCNAME[0]}: No params given"; return 1; }
