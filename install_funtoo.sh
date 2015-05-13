@@ -5,6 +5,7 @@ stage_site="build.funtoo.org/funtoo-current/"
 base_dir=$( dirname "${BASH_SOURCE[0]}" )
 saved_file="$( basename "${BASH_SOURCE[0]}" ).prev"
 tempfs="/mnt/tempfs/fsimage"
+cfg_prefix="._cfg0000_"
 
 write_save=1
 work_dir=
@@ -89,9 +90,10 @@ if ! [ -a "${root_part}" ]; then
 	fi
 fi
 
+part_list="${part_list//${root_part}/}"
+
 if ! [ -a "${boot_part}" ]; then
-	part_list="${part_list//${root_part}/}"
-	if [ -n "${part_list//[[:blank:]]/}" ]; then
+	if [ -n "${part_list//[[:cntrl:]]/}" ]; then
 		options="${part_list} skip"
 		if prompt_select "Select boot partition."; then
 			boot_part="${selected}"
@@ -101,9 +103,10 @@ if ! [ -a "${boot_part}" ]; then
 	fi
 fi
 
+part_list="${part_list//${boot_part}/}"
+
 if ! [ -a "${swap_part}" ]; then
-	part_list="${part_list//${boot_part}/}"
-	if [ -n "${part_list//[[:blank:]]/}" ]; then
+	if [ -n "${part_list//[[:cntrl:]]/}" ]; then
 		options="${part_list} skip"
 		if prompt_select "Select swap partition."; then
 			swap_part="${selected}"
@@ -134,52 +137,71 @@ if ! [ -f "${stage}" ]; then
 	fi
 fi
 
-if ! [ -x "${work_dir}/bin/bash" ]; then
-	stage_list=$(find / -maxdepth 5 -type f -name "${stage_name}")
-	if [ -n "${stage_list}" ]; then
-		options="${stage_list} skip"
-		if prompt_select "Select stage to extract."; then
-			stage="${selected}"
-			decrunch ${stage} ${work_dir} || die "Cannot extract ${stage}"
-			test ${write_save} && { save_var "stage" ${saved_file}; }
-		fi
-	else
+stage_list=$(find / -maxdepth 5 -type f -name "${stage_name}")
+if [ -n "${stage_list}" ]; then
+	options="${stage_list} skip"
+	if prompt_select "Select stage to extract."; then
+		stage="${selected}"
+		decrunch ${stage} ${work_dir} || die "Cannot extract ${stage}"
+		test ${write_save} && { save_var "stage" ${saved_file}; }
+	fi
+else
+	if [ ! -x "${work_dir}/bin/bash" ]; then
 		die "No ${stage_name} found on disk."
+	fi
+fi
+
+template_list=$(find / ${base_dir} -maxdepth 2 -type f -name "*.template")
+if [ -n "${template_list}" ]; then
+	if execution_premission "Install templates files? "; then
+		for file in ${template_list}
+		do
+			output=$(sed -n "1s|#||g;1 p" ${file})
+			orig_file="${work_dir}${output//[[:cntrl:]]/}"
+			echo "${file} > ${orig_file}"
+			output=$(sed -n "2,$ p" ${file})
+			if [ $? -eq 0 ]; then
+				echo "${output}" > ${orig_file}
+				[ -f "${orig_file}" ] || echo "Cannot write ${orig_file}"
+			else
+				echo "sed \"2,$ p\" ${file} failed"
+			fi
+		done
 	fi
 fi
 
 if execution_premission "Install config files? "; then
 	if [ -z "${password}" ]; then
 		read -p "Enter new password for root " password
-		shadow="$(openssl passwd -1 ${password}):$(( $(date +%s)/86400 )):0:::::"
-		tune_config "root:" ${shadow} ${work_dir}/etc/shadow
 		test ${write_save} && { save_var "password" ${saved_file}; }
 	fi
+	shadow="$(openssl passwd -1 ${password}):$(( $(date +%s)/86400 )):0:::::"
+	sed -e "s|^\(root:\).*|\1"${shadow}"|" ${work_dir}/etc/shadow > ${work_dir}/etc/${cfg_prefix}shadow
 
 	if [ -z "${hostname}" ]; then
 		read -p "Enter hostname " hostname
-		tune_config "hostname=" "\"${hostname}\"" ${work_dir}/etc/conf.d/hostname
 		test ${write_save} && { save_var "hostname" ${saved_file}; }
 	fi
+	sed -e "s|^\(hostname=\).*|\1\""${hostname}"\"|" ${work_dir}/etc/conf.d/hostname > ${work_dir}/etc/conf.d/${cfg_prefix}hostname
 
+	zoneinfo="${work_dir}/usr/share/zoneinfo"
 	if [ -z "${timezone}" ]; then
-		zoneinfo="${work_dir}/usr/share/zoneinfo"
 		options="$(find ${zoneinfo}/* -maxdepth 2 -type f ! -name "*.*" | sed -e "s|${zoneinfo}||g") skip"
 		if prompt_select "Select timezone? "; then
 			timezone=${selected}
-			try ln -sf ${zoneinfo}${timezone} ${work_dir}/etc/localtime || echo "Cannot set timezone ${selected}"
 			test ${write_save} && { save_var "timezone" ${saved_file}; }
 		fi
 	fi
+	try ln -sf ${zoneinfo}${timezone} ${work_dir}/etc/localtime || echo "Cannot set timezone ${selected}"
 
 	if [ -z "${hwclock}" ]; then
 		options="UTC local skip"
 		if prompt_select "Select hardware clock mode? "; then
 			hwclock=${selected}
-			tune_config "clock=" "\"${hwclock}\"" ${work_dir}/etc/conf.d/hwclock
 			test ${write_save} && { save_var "hwclock" ${saved_file}; }
 		fi
 	fi
+	sed -e "s|^\(clock=\).*|\1\""${hwclock}"\"|" ${work_dir}/etc/conf.d/hwclock > ${work_dir}/etc/conf.d/${cfg_prefix}hwclock
 
 	if [ -z "${locales}" ]; then
 		cat ${work_dir}/etc/locale.gen
@@ -187,46 +209,53 @@ if execution_premission "Install config files? "; then
 			options="$(cat ${work_dir}/usr/share/i18n/SUPPORTED | sed -e "s| UTF-8||g" | grep 'UTF-8') skip"
 			if prompt_select "Select language? "; then
 				locales+="${selected} "
-				tune_config "${selected}[:space:]UTF-8" ${work_dir}/etc/locale.gen
 			fi
 		done
 		test ${write_save} && { save_var "locales" ${saved_file}; }
 	fi
+
+	for locale in ${locales}
+	do
+		sed "$ a ${locale} UTF-8" ${work_dir}/etc/locale.gen > ${work_dir}/etc/${cfg_prefix}locale.gen
+	done
 
 	if [ -z "${keymap}" ]; then
 		keymap_dir="${work_dir}/usr/share/keymaps"
 		options="$(find ${keymap_dir}/* -maxdepth 3 -type f -name "*.map*" -printf "%f\n" | sed -e "s|.map.*||g" | sort) skip"
 		if prompt_select "Select keymap? "; then
 			keymap="${selected}"
-			tune_config "keymap=" \"${keymap}\" ${work_dir}/etc/conf.d/keymaps
 		fi
 		test ${write_save} && { save_var "keymap" ${saved_file}; }
 	fi
+	sed -e "s|^\(keymap=\).*|\1\""${keymap}"\"|" ${work_dir}/etc/conf.d/keymaps > ${work_dir}/etc/conf.d/${cfg_prefix}keymaps
+	sed -e "s|^\(consolefont=\).*|\1\"UniCyr_8x16\"|" ${work_dir}/etc/conf.d/consolefont > ${work_dir}/etc/conf.d/${cfg_prefix}consolefont
 
-	pv ${base_dir}/fstab.template > ${work_dir}/etc/fstab
 	fstabgen "${root_part}:/:defaults:0:1 ${boot_part}:/boot:noauto,noatime:1:2 ${swap_part}:swap:sw:0:0" "${work_dir}/etc/fstab"
-	pv ${base_dir}/make.conf.template > ${work_dir}/etc/portage/${cfg_prefix}make.conf
 
-	tune_config "MAKEOPTS=" "\"-j$(( $(nproc)+1 ))\ --quiet\"" ${work_dir}/etc/portage/make.conf
-	tune_config "LINGUAS=" "\"${locales//".UTF-8"/}\"" ${work_dir}/etc/portage/make.conf
-	tune_config "consolefont=" "\"UniCyr_8x16\"" ${work_dir}/etc/conf.d/consolefont
+	sed -e "s|^\(MAKEOPTS=\).*|\1\"-j"$(( $(nproc)+1 ))"\ --quiet\"|" ${work_dir}/etc/portage/make.conf > ${work_dir}/etc/portage/${cfg_prefix}make.conf
+	sed -e "s|^\(LINGUAS=\).*|\1\""${locales//_*/}"\"|" ${work_dir}/etc/portage/make.conf > ${work_dir}/etc/portage/${cfg_prefix}make.conf
 
-	mkdir -p ${work_dir}/var/db/repos/profiles/funtoo
-	mkdir -p ${work_dir}/var/db/repos/profiles/gentoo
+	#mkdir -p ${work_dir}/var/db/repos/funtoo/profiles/funtoo
+	#mkdir -p ${work_dir}/var/db/repos/gentoo/profiles/gentoo
 	#mkdir -p ${work_dir}/etc/portage/repos.conf
-	pv ${base_dir}/repos.conf.template > ${work_dir}/etc/portage/${cfg_prefix}repos.conf
-	pv /etc/resolv.conf > ${work_dir}/etc/${cfg_prefix}resolv.conf
 fi
 
 if execution_premission "Chroot in the new system environment? "; then
+	cp /etc/resolv.conf ${work_dir}/etc/resolv.conf
 	try mount -t proc none ${work_dir}/proc && { cleanup wait_umount ${work_dir}/proc; cleanup umount ${work_dir}/proc; }
 	try mount --rbind /sys ${work_dir}/sys && { cleanup umount -l ${work_dir}/sys; }
 	try mount --rbind /dev ${work_dir}/dev && { cleanup umount -l ${work_dir}/dev; }
 
-	env -i HOME=/root TERM=$TERM SHELL=/bin/bash
-	try chroot ${work_dir} env-update && source /etc/profile
-	printf "\nNow you are in chrooted environment.\n"
-	try chroot ${work_dir} /bin/bash -l
+	profile="\
+	etc-update; env-update && source /etc/profile \n\
+	locale-gen; env-update && source /etc/profile \n\
+	echo -e \"\nNow you are in chrooted environment.\"
+	echo -e \"\nselect default languge via eselect locale set\"\
+	echo -e \"\nrun emerge --sync and emerge kernel,boot-update and other packages you need \"\
+	rm -rf /root/.profile"
+	echo -e ${profile} >> ${work_dir}/root/.profile
+
+	env -i HOME=/root TERM=$TERM SHELL=/bin/bash chroot ${work_dir} /bin/bash --login
 fi
 
 proceed_cleanup

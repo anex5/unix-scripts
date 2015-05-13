@@ -1,3 +1,4 @@
+#/etc/portage/repos.conf
 [gentoo]
 # moved to non-standard location!
 location = /var/db/repos/gentoo

@@ -62,24 +62,7 @@ download()
 	local filename="${1##*\/}"
 	local dst="${2}"
 	local d_size="$(curl -sI ${url} | awk '/Content-Length/ { print $2 }')"
-	curl -s -L -C - ${url} | pv -s ${d_size:0: -1} > ${dst}/${filename}
-	return $?
-}
-
-tune_config()
-{
-	local cfg_prefix="._cfg0000_"
-	local params=($*)
-	local params_count=${#params[*]}
-	local variable="${1}"
-	local val="${params[params_count-2]}"
-	local filename="${params[params_count-1]}"
-	if [ "${variable}" == "${value}" ]; then
-		cmd="/${variable}/ p"
-	else
-		cmd="s|^\(${variable}\).*|\1${val}|"
-	fi
-	sed -e ${cmd} ${filename} > ${filename/${filename##*\/}/${cfg_prefix}${filename##*\/}}
+	curl -s -L -C - ${url} | pv -s ${d_size//[[:cntrl:]]/} > ${dst}/${filename}
 	return $?
 }
 
@@ -215,7 +198,6 @@ fstabgen()
 		if [ -n "${part}" ]; then
 			part_uuid="$(blkid -o value -s UUID ${part})"
 			fstype="$(blkid -o value -s TYPE ${part})"
-			#echo -e "UUID=${part_uuid}\t${mountpoint}\t\t${fstype}\t\t${opt}\t\t${dump}\t\t${pass}"
 			echo -e "\nUUID=${part_uuid}\t${mountpoint}\t${fstype}\t${opt}\t${dump}\t${pass}" >> "${2}"
 		fi
 	done

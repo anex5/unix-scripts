@@ -204,7 +204,7 @@ if execution_premission "Create new ${squashfs_name}?"; then
 		fi
 	fi
 
-	try umount -d ${squashfs_dst}/proc
+	try umount ${squashfs_dst}/proc
 	wait_umount ${squashfs_dst}/proc
 	do_squashfs ${output}
 
