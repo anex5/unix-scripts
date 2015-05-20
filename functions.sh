@@ -188,6 +188,7 @@ fstabgen()
 	local dump=
 	local pass=
 	local part=
+	local id=
 
 	for param in ${1}
 	do
@@ -196,9 +197,11 @@ fstabgen()
 		IFS=$XIFS
 		#echo part=${part} mountpoint=${mountpoint} opt=${opt} dump=${dump} pass=${pass}
 		if [ -n "${part}" ]; then
-			part_uuid="$(blkid -o value -s UUID ${part})"
+			part_uuid="$(blkid -o value -s PARTUUID ${part})"
+			uuid="$(blkid -o value -s UUID ${part})"
+			[ -n "${part_uuid}" ] && id="PARTUUID=${part_uuid}" || id="UUID=${uuid}"
 			fstype="$(blkid -o value -s TYPE ${part})"
-			echo -e "\nUUID=${part_uuid}\t${mountpoint}\t${fstype}\t${opt}\t${dump}\t${pass}" >> "${2}"
+			echo -e "${id}\t${mountpoint}\t${fstype}\t${opt}\t${dump}\t${pass}" >> "${2}"
 		fi
 	done
 }

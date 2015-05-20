@@ -1,6 +1,8 @@
 #/etc/fstab
+# vi: set ts=20 sts=20 sw=20 noexpandtab nowrap:
 # <file system>	<dir>	<type>	<options>	<dump>	<pass>
 tmpfs	/tmp	tmpfs	defaults,nodev,nosuid,mode=1777	0	0
 tmpfs	/var/lock	tmpfs	defaults,nodev,nosuid,noexec,mode=1777,size=10m	0	0
 tmpfs	/var/run	tmpfs	defaults,nodev,nosuid,noexec,mode=0755,size=10m	0	0
-# curlftpfs#ftp://mirror.yandex.ru/gentoo-distfiles/distfiles	/mnt/portage/distfiles	fuse	rw,allow_other,uid=0000,gid=0000,umask=0022	0	0
+# root@//192.168.1.137/unix_scripts	/media/windows	cifs	auto,user=nobody,password=nobody,uid=root,gid=root,rw	0	0
+# root@//192.168.1.137/write	/media/gain	cifs	auto,user=nobody,password=nobody,uid=root,gid=root,rw	0	0

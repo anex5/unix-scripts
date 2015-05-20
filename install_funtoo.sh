@@ -26,45 +26,49 @@ if [ -f "${saved_file}" ]; then
 	cleanup rm -r ${saved_file}
 fi
 
+part_list="$(find /dev/* -maxdepth 0 -name "sd??" -or -name "hd??")"
+
+if ! [ -a "${work_part}" ]; then
+	if execution_premission "Use virtual disk image? "; then
+		options="${part_list}"
+		if prompt_select "Select partition for ${tempfs}."; then
+			work_part="${selected}"
+			test ${write_save} && { save_var "work_part" ${saved_file}; }
+		fi
+		echo "Mounting work partition ${tempfs%\/*}"
+		try mkdir -p ${tempfs%\/*} && cleanup rm -r ${tempfs%\/*}
+		try mount ${work_part} ${tempfs%\/*} && { cleanup wait_umount ${tempfs%\/*}; cleanup umount ${tempfs%\/*}; }
+		if [ ! -w ${tempfs} ]; then
+			echo
+			read -p "Enter size of new virtual disk image (M) " tempfs_size
+			echo "Creating virtual disk image ${tempfs} of ${tempfs_size}M..."
+			pv -EE -s ${tempfs_size}M -S -B 4k /dev/zero > ${tempfs} || echo "Cannot create virtual disk image ${tempfs} of ${tempfs_size}M"
+		fi
+		work_disk="/dev/loop1"
+		try losetup ${work_disk} ${tempfs} && cleanup losetup -d ${work_disk}
+	fi
+fi
+
 if ! [ -a "${work_disk}" ]; then
 	fdisk -l
 	options="$(find /dev/* -maxdepth 0 -name "sd?" -or -name "hd?")"
-	if prompt_select "Select work disk."; then
+	if prompt_select "Select disk for partition."; then
 		work_disk="${selected}"
 		test ${write_save} && { save_var "work_disk" ${saved_file}; }
-	fi
-
-	if ! [ -a "${work_part}" ]; then
-		if execution_premission "Use virtual disk image on work disk? "; then
-			options="$(find "${work_disk%\/*}" -maxdepth 1 -name "${work_disk##*\/}?*")"
-			if prompt_select "Select partition for ${tempfs}."; then
-				work_part="${selected}"
-				test ${write_save} && { save_var "work_part" ${saved_file}; }
-			fi
-			echo "Mounting work partition ${tempfs%\/*}"
-			try mkdir -p ${tempfs%\/*} && cleanup rm -r ${tempfs%\/*}
-			try mount ${work_part} ${tempfs%\/*} && { cleanup wait_umount ${tempfs%\/*}; cleanup umount ${tempfs%\/*}; }
-			if [ ! -w ${tempfs} ]; then
-				echo
-				read -p "Enter size of new virtual disk image (M) " tempfs_size
-				echo "Creating virtual disk image ${tempfs} of ${tempfs_size}M..."
-				pv -EE -s ${tempfs_size}M -S -B 4k /dev/zero > ${tempfs} || echo "Cannot create virtual disk image ${tempfs} of ${tempfs_size}M"
-			fi
-			work_disk="/dev/loop1"
-			try losetup ${work_disk} ${tempfs} && cleanup losetup -d ${work_disk}
-		fi
 	fi
 
 	options="fdisk gdisk skip"
 	if prompt_select "Select partitioning programm."; then
 		try ${selected} ${work_disk}
 	fi
-
-	if [ -w "${tempfs}" ]; then
-		try kpartx -a -v ${tempfs} && cleanup kpartx -d ${tempfs}
-		work_disk="/dev/mapper/loop1"
-	fi
 fi
+
+if [ -w "${tempfs}" ]; then
+	try kpartx -a -v ${tempfs} && cleanup kpartx -d ${tempfs}
+	work_disk="/dev/mapper/loop1"
+fi
+
+part_list="$(find /dev/* -maxdepth 0 -name "sd??" -or -name "hd??")"
 
 if ! [ -d "${work_dir}" ]; then
 	options="$(find /mnt/* -maxdepth 0 -type d) new..."
@@ -76,8 +80,6 @@ if ! [ -d "${work_dir}" ]; then
 		test ${write_save} && { save_var "work_dir" ${saved_file}; }
 	fi
 fi
-
-part_list="$(find "${work_disk%\/*}" -maxdepth 1 -name "${work_disk##*\/}?*")"
 
 if ! [ -a "${root_part}" ]; then
 	options="${part_list}"
@@ -164,7 +166,7 @@ if [ -n "${template_list}" ]; then
 				echo "${output}" > ${orig_file}
 				[ -f "${orig_file}" ] || echo "Cannot write ${orig_file}"
 			else
-				echo "sed \"2,$ p\" ${file} failed"
+				echo "sed \"2,\$ p\" ${file} failed"
 			fi
 		done
 	fi
@@ -192,7 +194,7 @@ if execution_premission "Install config files? "; then
 			test ${write_save} && { save_var "timezone" ${saved_file}; }
 		fi
 	fi
-	try ln -sf ${zoneinfo}${timezone} ${work_dir}/etc/localtime || echo "Cannot set timezone ${selected}"
+	try ln -sf /usr/share/zoneinfo/${timezone} ${work_dir}/etc/localtime || echo "Cannot set timezone ${selected}"
 
 	if [ -z "${hwclock}" ]; then
 		options="UTC local skip"
@@ -249,11 +251,11 @@ if execution_premission "Chroot in the new system environment? "; then
 	profile="\
 	etc-update; env-update && source /etc/profile \n\
 	locale-gen; env-update && source /etc/profile \n\
-	echo -e \"\nNow you are in chrooted environment.\"
-	echo -e \"\nselect default languge via eselect locale set\"\
-	echo -e \"\nrun emerge --sync and emerge kernel,boot-update and other packages you need \"\
-	rm -rf /root/.profile"
-	echo -e ${profile} >> ${work_dir}/root/.profile
+	echo -e \"\nNow you are in chrooted environment.\
+	\nselect default languge via eselect locale set\
+	\nrun emerge --sync and emerge kernel,boot-update and other packages you need\" \n\
+	rm -rf ~/.profile"
+	echo -e ${profile} > ${work_dir}/root/.profile
 
 	env -i HOME=/root TERM=$TERM SHELL=/bin/bash chroot ${work_dir} /bin/bash --login
 fi

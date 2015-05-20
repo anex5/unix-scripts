@@ -1,19 +1,22 @@
 #/etc/portage/make.conf
 CHOST="x86_64-pc-linux-gnu"
 CFLAGS="-O2 -pipe"
+#CFLAGS="-O2 -march=amdfam10 -mcx16 -mpopcnt -pipe" # AMD Bulldozer A series
+#CFLAGS="-O2 -march=armv7-a -mtune=cortex-a9 -mfpu=vfpv3-d16 -mfloat-abi=hard -pipe -fomit-frame-pointer" # ARM v7
 CXXFLAGS="${CFLAGS}"
 CC="gcc"
 CXX="g++"
 #SYNC="git://github.com/funtoo/ports-2012.git"
 MAKEOPTS="-j1 --quiet"
-FEATURES="${FEATURES} -sandbox mini-manifest parallel-fetch userfetch parallel-install collision-protect metadata-transfer buildpkg ccache nodoc noinfo"
+FEATURES="${FEATURES} -sandbox mini-manifest parallel-fetch userfetch parallel-install collision-protect metadata-transfer buildpkg ccache distcc distcc-pump nodoc noinfo"
 
+#USE="3dnow 3dnowext mmx mmxext sse sse2 sse3 sse4a" #AMD
 USE="-build -epydoc -doc -gnome -gtk -kde -kdeenablefinal -ldap -qt3 -qt3support -qt4 -consolekit -pam -policykit -X -llvm \
 x264 png pdf djvu jpeg jpeg2k flac tiff truetype nls userlocales unicode fbdev \
 wayland-compositor wayland kvm v4l v4l2 vnc usb acpi alsa bash-completition curl vim-syntax"
 GENTOO_MIRRORS="http://mirror.yandex.ru/gentoo-distfiles/distfiles/ ftp://mirror.csclub.uwaterloo.ca/gentoo-distfiles/ http://distfiles.gentoo.org"
 
-EMERGE_DEFAULT_OPTS="--quiet-build=y --ask --tree --with-bdeps=y --autounmask-write=y --deep --jobs=2"
+EMERGE_DEFAULT_OPTS="--quiet-build=y --ask --tree --keep-going --with-bdeps=y --autounmask-write=y --deep --jobs=2"
 
 INPUT_DEVICES="evdev mouse keyboard"
 VIDEO_CARDS="vesa fbdev"
@@ -23,6 +26,7 @@ LINGUAS=""
 PORTAGE_BINHOST=/usr/portage/packages
 PYTHON_TARGETS="python2_7 python3_4"
 PYTHON_SINGLE_TARGET="python2_7"
+PYTHON_ABIS="2.7 3.4"
 
 PORT_LOGDIR=/var/log/portage
 PORTAGE_ELOG_CLASSES="log warn error info"

@@ -185,7 +185,7 @@ if execution_premission "Chroot in the sysresccd environment? "; then
 	echo "Now you are in chrooted environment."
 	echo "You can emerge some packages as usual."
 
-	#scp -L /etc/resolv.conf ${squashfs_dst}/etc/
+	try scp -L /etc/resolv.conf ${squashfs_dst}/etc/
 	try chroot ${squashfs_dst} env-update; source /etc/profile; gcc-config $(gcc-config -c); /bin/bash
 	try chroot ${squashfs_dst} sysresccd-cleansys devtools; rm -rf /var/log/* /usr/sbin/sysresccd-* /usr/share/sysreccd
 fi

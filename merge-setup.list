@@ -51,8 +51,6 @@ app-editors/hexcurse
 app-editors/hexedit
 app-misc/mc
 app-portage/eix
-app-portage/gentoolkit
-dev-lang/python
 dev-python/pexpect
 dev-util/ccache
 dev-vcs/git
@@ -75,6 +73,7 @@ sys-apps/ethtool
 sys-apps/ifplugd
 sys-apps/less
 sys-apps/usbutils
+sys-apps/pv
 sys-fs/aufs-util
 sys-fs/btrfs-progs
 sys-fs/cryptsetup
