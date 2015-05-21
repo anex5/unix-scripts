@@ -120,7 +120,7 @@ prompt_new_dir(){
 }
 
 save_var(){
-	[ $# -gt 1 ] || { echo "Two parameters expected!"; return 1; }
+	[ $# -eq 2 ] || { echo "Two parameters expected!"; return 1; }
 	echo "${1}="${!1} >> "${2}"
 	[ -w "${2}" ] && { return 0; } || { echo "${2} is not valid file!"; return 1; }
 }
@@ -204,4 +204,9 @@ fstabgen()
 			echo -e "${id}\t${mountpoint}\t${fstype}\t${opt}\t${dump}\t${pass}" >> "${2}"
 		fi
 	done
+}
+
+get_partitions_list()
+{
+	echo "$(find /dev/* -maxdepth 2 -name "sd??*" -or -name "hd??*" -or -name "loop1?*")"
 }

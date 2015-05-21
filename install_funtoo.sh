@@ -26,7 +26,7 @@ if [ -f "${saved_file}" ]; then
 	cleanup rm -r ${saved_file}
 fi
 
-part_list="$(find /dev/* -maxdepth 0 -name "sd??" -or -name "hd??")"
+part_list="$(get_partitions_list)"
 
 if ! [ -a "${work_part}" ]; then
 	if execution_premission "Use virtual disk image? "; then
@@ -45,33 +45,32 @@ if ! [ -a "${work_part}" ]; then
 			pv -EE -s ${tempfs_size}M -S -B 4k /dev/zero > ${tempfs} || echo "Cannot create virtual disk image ${tempfs} of ${tempfs_size}M"
 		fi
 		work_disk="/dev/loop1"
-		try losetup ${work_disk} ${tempfs} && cleanup losetup -d ${work_disk}
+		try losetup ${work_disk} ${tempfs} #&& cleanup losetup -d ${work_disk}
 	fi
 fi
 
 if ! [ -a "${work_disk}" ]; then
 	fdisk -l
-	options="$(find /dev/* -maxdepth 0 -name "sd?" -or -name "hd?")"
-	if prompt_select "Select disk for partition."; then
+	options="$(find /dev/* -maxdepth 0 -name "sd?" -or -name "hd?") skip"
+	if prompt_select "Select disk for partitioning."; then
 		work_disk="${selected}"
 		test ${write_save} && { save_var "work_disk" ${saved_file}; }
-	fi
-
-	options="fdisk gdisk skip"
-	if prompt_select "Select partitioning programm."; then
-		try ${selected} ${work_disk}
+		options="fdisk gdisk skip"
+		if prompt_select "Select partitioning programm."; then
+			try ${selected} ${work_disk}
+		fi
 	fi
 fi
 
 if [ -w "${tempfs}" ]; then
 	try kpartx -a -v ${tempfs} && cleanup kpartx -d ${tempfs}
-	work_disk="/dev/mapper/loop1"
 fi
 
-part_list="$(find /dev/* -maxdepth 0 -name "sd??" -or -name "hd??")"
+part_list="$(get_partitions_list)"
 
 if ! [ -d "${work_dir}" ]; then
-	options="$(find /mnt/* -maxdepth 0 -type d) new..."
+	options="$(find /mnt/* -maxdepth 0 -type d)"
+	options="${options//${tempfs%\/*}/} new..."
 	if prompt_select "Select directory you want to use as the installation mount point."; then
 		case ${selected} in
 			"new...") work_dir=$(prompt_new_dir /mnt);;
@@ -194,7 +193,7 @@ if execution_premission "Install config files? "; then
 			test ${write_save} && { save_var "timezone" ${saved_file}; }
 		fi
 	fi
-	try ln -sf /usr/share/zoneinfo/${timezone} ${work_dir}/etc/localtime || echo "Cannot set timezone ${selected}"
+	try ln -sf /usr/share/zoneinfo${timezone} ${work_dir}/etc/localtime || echo "Cannot set timezone ${selected}"
 
 	if [ -z "${hwclock}" ]; then
 		options="UTC local skip"
