@@ -44,8 +44,8 @@ if ! [ -a "${work_part}" ]; then
 			echo "Creating virtual disk image ${tempfs} of ${tempfs_size}M..."
 			pv -EE -s ${tempfs_size}M -S -B 4k /dev/zero > ${tempfs} || echo "Cannot create virtual disk image ${tempfs} of ${tempfs_size}M"
 		fi
-		work_disk="/dev/loop1"
-		try losetup ${work_disk} ${tempfs} #&& cleanup losetup -d ${work_disk}
+		work_disk=$(losetup -f)
+		try losetup -P ${work_disk} ${tempfs} && cleanup losetup -d ${work_disk}
 	fi
 fi
 
@@ -62,9 +62,9 @@ if ! [ -a "${work_disk}" ]; then
 	fi
 fi
 
-if [ -w "${tempfs}" ]; then
-	try kpartx -a -v ${tempfs} && cleanup kpartx -d ${tempfs}
-fi
+#if [ -w "${tempfs}" ]; then
+#	try kpartx -a -v ${tempfs} && cleanup kpartx -d ${tempfs}
+#fi
 
 part_list="$(get_partitions_list)"
 
@@ -104,7 +104,8 @@ if ! [ -a "${boot_part}" ]; then
 	fi
 fi
 
-part_list="${part_list//${boot_part}/}"
+disk_list="$(find /dev/* -maxdepth 0 -name "sd?" -or -name "hd?")"
+part_list="${disk_list//${root_part%[[:digit:]]*}/} ${part_list//${boot_part}/}"
 
 if ! [ -a "${swap_part}" ]; then
 	if [ -n "${part_list//[[:cntrl:]]/}" ]; then
@@ -233,8 +234,9 @@ if execution_premission "Install config files? "; then
 
 	fstabgen "${root_part}:/:defaults:0:1 ${boot_part}:/boot:noauto,noatime:1:2 ${swap_part}:swap:sw:0:0" "${work_dir}/etc/fstab"
 
-	sed -e "s|^\(MAKEOPTS=\).*|\1\"-j"$(( $(nproc)+1 ))"\ --quiet\"|" ${work_dir}/etc/portage/make.conf > ${work_dir}/etc/portage/${cfg_prefix}make.conf
-	sed -e "s|^\(LINGUAS=\).*|\1\""${locales//_*/}"\"|" ${work_dir}/etc/portage/make.conf > ${work_dir}/etc/portage/${cfg_prefix}make.conf
+	sed -e "s|^\(MAKEOPTS=\).*|\1\"-j"$(( $(nproc)+1 ))" --quiet\"|" ${work_dir}/etc/genkernel.conf > ${work_dir}/etc/${cfg_prefix}genkernel.conf
+	sed -e "s|^\(MAKEOPTS=\).*|\1\"-j"$(( $(nproc)+1 ))" --quiet\"|" ${work_dir}/etc/portage/make.conf > ${work_dir}/etc/portage/${cfg_prefix}make.conf
+	sed -i "s|^\(LINGUAS=\).*|\1\""${locales//_*/}"\"|" ${work_dir}/etc/portage/${cfg_prefix}make.conf
 
 	#mkdir -p ${work_dir}/var/db/repos/funtoo/profiles/funtoo
 	#mkdir -p ${work_dir}/var/db/repos/gentoo/profiles/gentoo
@@ -250,6 +252,7 @@ if execution_premission "Chroot in the new system environment? "; then
 	profile="\
 	etc-update; env-update && source /etc/profile \n\
 	locale-gen; env-update && source /etc/profile \n\
+	eselect news read \n\
 	echo -e \"\nNow you are in chrooted environment.\
 	\nselect default languge via eselect locale set\
 	\nrun emerge --sync and emerge kernel,boot-update and other packages you need\" \n\
