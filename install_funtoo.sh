@@ -49,7 +49,7 @@ if ! [ -a "${work_part}" ]; then
 	fi
 fi
 
-if ! [ -a "${work_disk}" ]; then
+if ! [ -d "${work_dir}" ]; then
 	fdisk -l
 	options="$(find /dev/* -maxdepth 0 -name "sd?" -or -name "hd?") skip"
 	if prompt_select "Select disk for partitioning."; then
