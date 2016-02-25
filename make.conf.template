@@ -8,12 +8,13 @@ CC="gcc"
 CXX="g++"
 #SYNC="git://github.com/funtoo/ports-2012.git"
 MAKEOPTS="-j1 --quiet"
-FEATURES="${FEATURES} -sandbox mini-manifest parallel-fetch userfetch parallel-install collision-protect metadata-transfer buildpkg ccache distcc distcc-pump nodoc noinfo"
+FEATURES="${FEATURES} -sandbox parallel-fetch userfetch parallel-install collision-protect metadata-transfer buildpkg ccache distcc distcc-pump nodoc noinfo"
 
-#USE="3dnow 3dnowext mmx mmxext sse sse2 sse3 sse4a" #AMD
-USE="-build -epydoc -doc -gnome -gtk -kde -kdeenablefinal -ldap -qt3 -qt3support -qt4 -consolekit -pam -policykit -X -llvm \
-x264 png pdf djvu jpeg jpeg2k flac tiff truetype nls userlocales unicode fbdev \
-wayland-compositor wayland kvm v4l v4l2 vnc usb acpi alsa bash-completition curl vim-syntax"
+#AMDCPU="3dnow 3dnowext mmx mmxext sse sse2 sse3 sse4a opencl"
+#INTELCPU="mmx sse sse2 sse3 ssse3 opencl"
+USE="-build -epydoc -doc -gnome -gtk -kde -kdeenablefinal -ldap -qt3 -qt3support -qt4 -consolekit -pam -policykit -X -xscreensaver -osdmenu -llvm \
+x264 x265 png pdf djvu jpeg jpeg2k tiff gif svg raw webm wmf matroska aac a52 flac ogg vorbis gsm truetype nls userlocales unicode fbdev gpm gps imagemagick ipv6 joystick \
+wayland-compositor wayland wifi kvm v4l v4l2 win32codecs mtp vnc usb acpi alsa bash-completition curl vim-syntax"
 GENTOO_MIRRORS="http://mirror.yandex.ru/gentoo-distfiles/distfiles/ ftp://mirror.csclub.uwaterloo.ca/gentoo-distfiles/ http://distfiles.gentoo.org"
 
 EMERGE_DEFAULT_OPTS="--quiet-build=y --ask --tree --keep-going --with-bdeps=y --autounmask-write=y --deep --jobs=2"

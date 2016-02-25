@@ -21,6 +21,8 @@ source "$( dirname "${BASH_SOURCE[0]}" )/functions.sh"
 printf "\nThis script helps to install funtoo"
 
 execution_premission "Sure you want to run this? " || die
+
+saved_file="$(find ${base_dir} ~/* -name ${saved_file} -type f)"
 if [ -f "${saved_file}" ]; then
 	execution_premission "Continue previous installation?" && source ${saved_file} || echo "" > ${saved_file}
 	cleanup rm -r ${saved_file}
@@ -194,7 +196,7 @@ if execution_premission "Install config files? "; then
 			test ${write_save} && { save_var "timezone" ${saved_file}; }
 		fi
 	fi
-	try ln -sf /usr/share/zoneinfo${timezone} ${work_dir}/etc/localtime || echo "Cannot set timezone ${selected}"
+	try ln -rsf /usr/share/zoneinfo${timezone} ${work_dir}/etc/localtime || echo "Cannot set timezone ${selected}"
 
 	if [ -z "${hwclock}" ]; then
 		options="UTC local skip"
@@ -216,8 +218,7 @@ if execution_premission "Install config files? "; then
 		test ${write_save} && { save_var "locales" ${saved_file}; }
 	fi
 
-	for locale in ${locales}
-	do
+	for locale in ${locales} do
 		sed "$ a ${locale} UTF-8" ${work_dir}/etc/locale.gen > ${work_dir}/etc/${cfg_prefix}locale.gen
 	done
 
@@ -230,7 +231,8 @@ if execution_premission "Install config files? "; then
 		test ${write_save} && { save_var "keymap" ${saved_file}; }
 	fi
 	sed -e "s|^\(keymap=\).*|\1\""${keymap}"\"|" ${work_dir}/etc/conf.d/keymaps > ${work_dir}/etc/conf.d/${cfg_prefix}keymaps
-	sed -e "s|^\(consolefont=\).*|\1\"UniCyr_8x16\"|" ${work_dir}/etc/conf.d/consolefont > ${work_dir}/etc/conf.d/${cfg_prefix}consolefont
+	sed -e "s|^\(consolefont=\).*|\1\"ter-v16b\"|" ${work_dir}/etc/conf.d/consolefont > ${work_dir}/etc/conf.d/${cfg_prefix}consolefont
+	#ln -rs ${work_dir}/etc/init.d/conslefont ${work_dir}/etc/runlevels/default/consolefont
 
 	fstabgen "${root_part}:/:defaults:0:1 ${boot_part}:/boot:noauto,noatime:1:2 ${swap_part}:swap:sw:0:0" "${work_dir}/etc/fstab"
 
@@ -243,8 +245,14 @@ if execution_premission "Install config files? "; then
 	#mkdir -p ${work_dir}/etc/portage/repos.conf
 fi
 
-if execution_premission "Chroot in the new system environment? "; then
+if execution_premission "Enable dhcp network? "; then
+	ln -rs ${work_dir}/etc/init.d/netif.tmpl ${work_dir}/etc/init.d/net.eth0
+	echo template=dhcpcd > ${work_dir}/etc/conf.d/${cfg_prefix}net.eth0
+	ln -rs ${work_dir}/etc/init.d/dhcpcd ${work_dir}/etc/runlevels/default/dhcpcd 
 	cp /etc/resolv.conf ${work_dir}/etc/resolv.conf
+fi
+
+if execution_premission "Chroot in the new system environment? "; then
 	try mount -t proc none ${work_dir}/proc && { cleanup wait_umount ${work_dir}/proc; cleanup umount ${work_dir}/proc; }
 	try mount --rbind /sys ${work_dir}/sys && { cleanup umount -l ${work_dir}/sys; }
 	try mount --rbind /dev ${work_dir}/dev && { cleanup umount -l ${work_dir}/dev; }
@@ -252,10 +260,9 @@ if execution_premission "Chroot in the new system environment? "; then
 	profile="\
 	etc-update; env-update && source /etc/profile \n\
 	locale-gen; env-update && source /etc/profile \n\
-	eselect news read \n\
 	echo -e \"\nNow you are in chrooted environment.\
 	\nselect default languge via eselect locale set\
-	\nrun emerge --sync and emerge kernel,boot-update and other packages you need\" \n\
+	\nrun emerge --sync and merge packages you need\" \n\
 	rm -rf ~/.profile"
 	echo -e ${profile} > ${work_dir}/root/.profile
 
