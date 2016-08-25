@@ -22,9 +22,10 @@ printf "\nThis script helps to install funtoo"
 
 execution_premission "Sure you want to run this? " || die
 
-saved_file="$(find ${base_dir} ~/* -name ${saved_file} -type f)"
 if [ -f "${saved_file}" ]; then
-	execution_premission "Continue previous installation?" && source ${saved_file} || echo "" > ${saved_file}
+	saved_file="$(find ${base_dir} ~/* -name ${saved_file} -type f)"
+	echo ${saved_file}
+	execution_premission "Continue previous installation?" && { source ${saved_file} || echo "" > ${saved_file}; }
 	cleanup rm -r ${saved_file}
 fi
 
@@ -208,7 +209,7 @@ if execution_premission "Install config files? "; then
 	sed -e "s|^\(clock=\).*|\1\""${hwclock}"\"|" ${work_dir}/etc/conf.d/hwclock > ${work_dir}/etc/conf.d/${cfg_prefix}hwclock
 
 	if [ -z "${locales}" ]; then
-		cat ${work_dir}/etc/locale.gen
+		cat ${work_dir}/etc/locale.gen > ${work_dir}/etc/${cfg_prefix}locale.gen
 		while execution_premission "Add language? "; do
 			options="$(cat ${work_dir}/usr/share/i18n/SUPPORTED | sed -e "s| UTF-8||g" | grep 'UTF-8') skip"
 			if prompt_select "Select language? "; then
@@ -218,8 +219,10 @@ if execution_premission "Install config files? "; then
 		test ${write_save} && { save_var "locales" ${saved_file}; }
 	fi
 
-	for locale in ${locales} do
-		sed "$ a ${locale} UTF-8" ${work_dir}/etc/locale.gen > ${work_dir}/etc/${cfg_prefix}locale.gen
+	for locale in ${locales} 
+	do
+		echo "${locale} UTF-8" >> ${work_dir}/etc/${cfg_prefix}locale.gen
+		#sed "$ a ${locale} UTF-8" ${work_dir}/etc/locale.gen > ${work_dir}/etc/${cfg_prefix}locale.gen
 	done
 
 	if [ -z "${keymap}" ]; then
@@ -231,7 +234,7 @@ if execution_premission "Install config files? "; then
 		test ${write_save} && { save_var "keymap" ${saved_file}; }
 	fi
 	sed -e "s|^\(keymap=\).*|\1\""${keymap}"\"|" ${work_dir}/etc/conf.d/keymaps > ${work_dir}/etc/conf.d/${cfg_prefix}keymaps
-	sed -e "s|^\(consolefont=\).*|\1\"ter-v16b\"|" ${work_dir}/etc/conf.d/consolefont > ${work_dir}/etc/conf.d/${cfg_prefix}consolefont
+	sed -e "s|^\(consolefont=\).*|\1\"ter-u16b\"|" ${work_dir}/etc/conf.d/consolefont > ${work_dir}/etc/conf.d/${cfg_prefix}consolefont
 	#ln -rs ${work_dir}/etc/init.d/conslefont ${work_dir}/etc/runlevels/default/consolefont
 
 	fstabgen "${root_part}:/:defaults:0:1 ${boot_part}:/boot:noauto,noatime:1:2 ${swap_part}:swap:sw:0:0" "${work_dir}/etc/fstab"
@@ -246,10 +249,11 @@ if execution_premission "Install config files? "; then
 fi
 
 if execution_premission "Enable dhcp network? "; then
-	ln -rs ${work_dir}/etc/init.d/netif.tmpl ${work_dir}/etc/init.d/net.eth0
+	ln -rsf ${work_dir}/etc/init.d/netif.tmpl ${work_dir}/etc/init.d/net.eth0
 	echo template=dhcpcd > ${work_dir}/etc/conf.d/${cfg_prefix}net.eth0
-	ln -rs ${work_dir}/etc/init.d/dhcpcd ${work_dir}/etc/runlevels/default/dhcpcd 
+	ln -rsf ${work_dir}/etc/init.d/dhcpcd ${work_dir}/etc/runlevels/default/dhcpcd 
 	cp /etc/resolv.conf ${work_dir}/etc/resolv.conf
+	echo "nameserver 8.8.8.8" > ${work_dir}/etc/resolv.conf
 fi
 
 if execution_premission "Chroot in the new system environment? "; then

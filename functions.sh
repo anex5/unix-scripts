@@ -120,7 +120,7 @@ prompt_new_dir(){
 }
 
 save_var(){
-	[ $# -eq 2 ] || { echo "Two parameters expected!"; return 1; }
+	[ $# -eq 2 ] || { echo "${FUNCNAME[0]}: Two parameters expected! Get $#"; return 1; }
 	echo "${1}="${!1} >> "${2}"
 	[ -w "${2}" ] && { return 0; } || { echo "${2} is not valid file!"; return 1; }
 }

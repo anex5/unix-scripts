@@ -1,5 +1,5 @@
 #/etc/portage/make.conf
-CHOST="x86_64-pc-linux-gnu"
+
 CFLAGS="-O2 -pipe"
 #CFLAGS="-O2 -march=amdfam10 -mcx16 -mpopcnt -pipe" # AMD Bulldozer A series
 #CFLAGS="-O2 -march=armv7-a -mtune=cortex-a9 -mfpu=vfpv3-d16 -mfloat-abi=hard -pipe -fomit-frame-pointer" # ARM v7
@@ -12,8 +12,8 @@ FEATURES="${FEATURES} -sandbox parallel-fetch userfetch parallel-install collisi
 
 #AMDCPU="3dnow 3dnowext mmx mmxext sse sse2 sse3 sse4a opencl"
 #INTELCPU="mmx sse sse2 sse3 ssse3 opencl"
-USE="-build -epydoc -doc -gnome -gtk -kde -kdeenablefinal -ldap -qt3 -qt3support -qt4 -consolekit -pam -policykit -X -xscreensaver -osdmenu -llvm \
-x264 x265 png pdf djvu jpeg jpeg2k tiff gif svg raw webm wmf matroska aac a52 flac ogg vorbis gsm truetype nls userlocales unicode fbdev gpm gps imagemagick ipv6 joystick \
+USE="-build -epydoc -doc -gnome -gtk -kde -kdeenablefinal -ldap -qt3 -qt3support -qt4 -consolekit -pam -policykit -X -xscreensaver -xv -osdmenu \
+x264 x265 png pdf djvu jpeg jpeg2k tiff gif svg raw webp wmf matroska aac a52 flac ogg vorbis gsm truetype nls userlocales unicode fbdev gpm gps imagemagick ipv6 joystick btrfs\
 wayland-compositor wayland wifi kvm v4l v4l2 win32codecs mtp vnc usb acpi alsa bash-completition curl vim-syntax"
 GENTOO_MIRRORS="http://mirror.yandex.ru/gentoo-distfiles/distfiles/ ftp://mirror.csclub.uwaterloo.ca/gentoo-distfiles/ http://distfiles.gentoo.org"
 
