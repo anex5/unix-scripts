@@ -1,0 +1,7 @@
+﻿# /etc/distcc/hosts
+# See the "Hosts Specification" section of
+# "man distcc" for the format of this file.
+#
+# By default, just test that it works in loopback mode.
+
+192.168.x.xx,cpp,lzo 192.168.x.xxx,cpp,lzo localhost,cpp,lzo
