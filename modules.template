@@ -1,0 +1,2 @@
+# /etc/portage/modules
+portdbapi.auxdbmodule = cache.sqlite.database
