@@ -1,0 +1,9 @@
+# /etc/portage/package.accept_keyword
+# required by dev-libs/weston-3.0.0::dev-kit
+# required by weston (argument)
+=dev-libs/wayland-protocols-9999 **
+# required by weston (argument)
+=dev-libs/weston-9999 **
+# required by app-admin/ego-2.3.1::core-kit
+# required by @system (argument)
+=dev-python/appi-0.1.9999 **

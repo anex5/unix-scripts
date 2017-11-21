@@ -1,0 +1,12 @@
+# /etc/portage/package.unmask
+# required by crossdev (argument)
+# /var/git/meta-repo/kits/core-kit/profiles/package.mask/funtoo-cautionary:
+# FL-1703: these versions of crossdev is a forkbomb(s)
+=sys-devel/crossdev-20160602-r1
+# required by app-editors/vim-8.0.1322::editors-kit[python_targets_python3_5,python]
+# required by app-vim/eselect-syntax-20070506::editors-kit
+# required by app-admin/eselect-1.4.9::core-kit[vim-syntax]
+# required by app-eselect/eselect-ctags-1.18::core-kit
+# required by dev-util/ctags-20161028::core-kit
+# /var/git/meta-repo/kits/core-kit/profiles/funtoo/kits/python-kit/3.4-prime/package.mask/funtoo-kit-python:
+=dev-lang/python-3.5.3

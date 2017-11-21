@@ -1,0 +1,5 @@
+# /etc/portage/package.use
+# required by media-libs/mesa-13.0.1::xorg-kit[wayland]
+# required by dev-libs/weston-3.0.0::dev-kit[gles2]
+# required by weston (argument)
+>=dev-libs/wayland-1.12.0 abi_x86_32
