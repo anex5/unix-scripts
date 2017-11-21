@@ -69,7 +69,7 @@ fi
 #	try kpartx -a -v ${tempfs} && cleanup kpartx -d ${tempfs}
 #fi
 
-part_list="$(get_partitions_list)"
+part_list="$(get_partitions_list)" #reread partlist 
 
 if ! [ -d "${work_dir}" ]; then
 	options="$(find /mnt/* -maxdepth 0 -type d)"
@@ -235,7 +235,7 @@ if execution_premission "Install config files? "; then
 	fi
 	sed -e "s|^\(keymap=\).*|\1\""${keymap}"\"|" ${work_dir}/etc/conf.d/keymaps > ${work_dir}/etc/conf.d/${cfg_prefix}keymaps
 	sed -e "s|^\(consolefont=\).*|\1\"ter-u16b\"|" ${work_dir}/etc/conf.d/consolefont > ${work_dir}/etc/conf.d/${cfg_prefix}consolefont
-	#ln -rs ${work_dir}/etc/init.d/conslefont ${work_dir}/etc/runlevels/default/consolefont
+	ln -rs /etc/init.d/conslefont ${work_dir}/etc/runlevels/boot/consolefont
 
 	fstabgen "${root_part}:/:defaults:0:1 ${boot_part}:/boot:noauto,noatime:1:2 ${swap_part}:swap:sw:0:0" "${work_dir}/etc/fstab"
 
@@ -253,7 +253,7 @@ if execution_premission "Enable dhcp network? "; then
 	echo template=dhcpcd > ${work_dir}/etc/conf.d/${cfg_prefix}net.eth0
 	ln -rsf ${work_dir}/etc/init.d/dhcpcd ${work_dir}/etc/runlevels/default/dhcpcd 
 	cp /etc/resolv.conf ${work_dir}/etc/resolv.conf
-	echo "nameserver 8.8.8.8" > ${work_dir}/etc/resolv.conf
+	echo "nameserver 8.8.8.8" >> ${work_dir}/etc/resolv.conf
 fi
 
 if execution_premission "Chroot in the new system environment? "; then
@@ -264,6 +264,7 @@ if execution_premission "Chroot in the new system environment? "; then
 	profile="\
 	etc-update; env-update && source /etc/profile \n\
 	locale-gen; env-update && source /etc/profile \n\
+	PS1="\[0169\] root@${hostname} $" \n\
 	echo -e \"\nNow you are in chrooted environment.\
 	\nselect default languge via eselect locale set\
 	\nrun emerge --sync and merge packages you need\" \n\
