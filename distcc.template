@@ -1,2 +1,2 @@
-﻿# /etc/conf.d/distcc
+﻿#/etc/conf.d/distcc
 DISTCCD_OPTS="--port 3632 --log-level notice --log-file /var/log/distccd.log -N 15 --listen 192.168.x.xxx --allow 192.168.x.xx --allow 192.168.x.xxx"
