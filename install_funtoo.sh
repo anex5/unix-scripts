@@ -162,10 +162,13 @@ if [ -n "${template_list}" ]; then
 		for file in ${template_list}
 		do
 			output=$(sed -n "1s|#||g;1 p" ${file})
-			orig_file="${work_dir}${output//[[:cntrl:]]/}"
+			orig_file="${work_dir}${output//[[:cntrl:]][[:blank:]]/}"
 			echo "${file} > ${orig_file}"
 			output=$(sed -n "2,$ p" ${file})
 			if [ $? -eq 0 ]; then
+				if [ ! -d "${orig_file%\/*}" ]; then 
+					try mkdir -p "${orig_file%\/*}"
+				fi
 				echo "${output}" > ${orig_file}
 				[ -f "${orig_file}" ] || echo "Cannot write ${orig_file}"
 			else
@@ -242,6 +245,7 @@ if execution_premission "Install config files? "; then
 	sed -e "s|^\(MAKEOPTS=\).*|\1\"-j"$(( $(nproc)+1 ))" --quiet\"|" ${work_dir}/etc/genkernel.conf > ${work_dir}/etc/${cfg_prefix}genkernel.conf
 	sed -e "s|^\(MAKEOPTS=\).*|\1\"-j"$(( $(nproc)+1 ))" --quiet\"|" ${work_dir}/etc/portage/make.conf > ${work_dir}/etc/portage/${cfg_prefix}make.conf
 	sed -i "s|^\(LINGUAS=\).*|\1\""${locales//_*/}"\"|" ${work_dir}/etc/portage/${cfg_prefix}make.conf
+	sed -i "s|^\(L10N=\).*|\1\""${locales//_*/}"\"|" ${work_dir}/etc/portage/${cfg_prefix}make.conf
 
 	#mkdir -p ${work_dir}/var/db/repos/funtoo/profiles/funtoo
 	#mkdir -p ${work_dir}/var/db/repos/gentoo/profiles/gentoo
@@ -264,10 +268,10 @@ if execution_premission "Chroot in the new system environment? "; then
 	profile="\
 	etc-update; env-update && source /etc/profile \n\
 	locale-gen; env-update && source /etc/profile \n\
-	PS1="\[0169\] root@${hostname} $" \n\
+	PS1=""\[0169\] root@${hostname} $"" \n\
 	echo -e \"\nNow you are in chrooted environment.\
 	\nselect default languge via eselect locale set\
-	\nrun emerge --sync and merge packages you need\" \n\
+	\nsync portage tree and merge packages you need\" \n\
 	rm -rf ~/.profile"
 	echo -e ${profile} > ${work_dir}/root/.profile
 
