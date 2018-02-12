@@ -1,4 +1,4 @@
-# /etc/portage/package.accept_keyword
+#/etc/portage/package.accept_keyword
 # required by dev-libs/weston-3.0.0::dev-kit
 # required by weston (argument)
 =dev-libs/wayland-protocols-9999 **
