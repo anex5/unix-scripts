@@ -1,4 +1,4 @@
-﻿# /etc/distcc/hosts
+﻿#/etc/distcc/hosts
 # See the "Hosts Specification" section of
 # "man distcc" for the format of this file.
 #
