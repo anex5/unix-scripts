@@ -1,4 +1,4 @@
-﻿# /etc/conf.d/consolefont
+﻿#/etc/conf.d/consolefont
 # The consolefont service is not activated by default. If you need to
 # use it, you should run "rc-update add consolefont boot" as root.
 #
