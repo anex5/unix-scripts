@@ -96,3 +96,4 @@ sys-process/lsof
 sys-process/nmon
 sys-process/fcron
 sys-power/powertop
+sys-apps/iucode_tool
