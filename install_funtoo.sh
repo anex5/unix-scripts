@@ -192,6 +192,13 @@ if execution_premission "Install config files? "; then
 	fi
 	sed -e "s|^\(hostname=\).*|\1\""${hostname}"\"|" ${work_dir}/etc/conf.d/hostname > ${work_dir}/etc/conf.d/${cfg_prefix}hostname
 
+	if execution_premission "Enable automatic root login?"; then
+		if [ -z "${autologin}" ]; then
+			test ${write_save} && { save_var "autologin" ${saved_file}; }
+		fi
+		sed -e "s|\bc1:12345:respawn:/sbin/agetty\b|& -a root|" ${work_dir}/etc/inittab > ${work_dir}/etc/${cfg_prefix}inittab
+	fi
+
 	zoneinfo="${work_dir}/usr/share/zoneinfo"
 	if [ -z "${timezone}" ]; then
 		options="$(find ${zoneinfo}/* -maxdepth 2 -type f ! -name "*.*" | sed -e "s|${zoneinfo}||g") skip"
@@ -277,6 +284,7 @@ if execution_premission "Chroot in the new system environment? "; then
 
 	env -i HOME=/root TERM=$TERM SHELL=/bin/bash chroot ${work_dir} /bin/bash --login
 fi
+
 
 proceed_cleanup
 exit 0
