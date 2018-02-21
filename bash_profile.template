@@ -24,3 +24,13 @@ if test -z "${XDG_RUNTIME_DIR}"; then
         chmod 0700 "${XDG_RUNTIME_DIR}"
     fi
 fi
+
+# fix broken console with utf8 in the alternative-kernels
+echo -n -e '\033%G'
+kbd_mode -u
+
+LINES=$(stty size|cut -d" " -f1)
+fbecho()
+{
+	[ $LINES -ge 28 ] && echo
+}
