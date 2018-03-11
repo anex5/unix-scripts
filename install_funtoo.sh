@@ -265,6 +265,7 @@ if execution_premission "Enable dhcp network? "; then
 	ln -rsf ${work_dir}/etc/init.d/dhcpcd ${work_dir}/etc/runlevels/default/dhcpcd 
 	cp /etc/resolv.conf ${work_dir}/etc/resolv.conf
 	echo "nameserver 8.8.8.8" >> ${work_dir}/etc/resolv.conf
+	echo "nameserver 8.8.4.4" >> ${work_dir}/etc/resolv.conf
 fi
 
 if execution_premission "Chroot in the new system environment? "; then
@@ -275,12 +276,12 @@ if execution_premission "Chroot in the new system environment? "; then
 	profile="\
 	etc-update; env-update && source /etc/profile \n\
 	locale-gen; env-update && source /etc/profile \n\
-	PS1=""\[0169\] root@${hostname} $"" \n\
+	PS1=chroot\[\033[01;36m\]> \n\
 	echo -e \"\nNow you are in chrooted environment.\
 	\nselect default languge via eselect locale set\
 	\nsync portage tree and merge packages you need\" \n\
-	rm -rf ~/.profile"
-	echo -e ${profile} > ${work_dir}/root/.profile
+	rm -rf ~/.bash_login"
+	echo -e ${profile} > ${work_dir}/root/.bash_login
 
 	env -i HOME=/root TERM=$TERM SHELL=/bin/bash chroot ${work_dir} /bin/bash --login
 fi
