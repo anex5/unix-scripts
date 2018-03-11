@@ -1,0 +1,12 @@
+#/etc/portage/package.unmask
+sys-kernel/spl
+sys-fs/zfs
+sys-fs/zfs-kmod
+# clang5 LLVM5
+=sys-devel/llvm-common-5.0.1
+=sys-devel/clang-9999
+=sys-devel/llvm-9999
+=sys-devel/llvmgold-7
+=sys-devel/llvm-5.0.1
+=sys-devel/clang-runtime-5.0.1
+=sys-devel/clang-5.0.1
