@@ -1,0 +1,8 @@
+#/etc/portage/repos.conf/local.conf
+[DEFAULT]
+main-repo = core-kit
+
+[local]
+location = /var/overlay/local
+auto-sync = no
+priority = 10
