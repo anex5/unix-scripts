@@ -7,20 +7,21 @@ CC="gcc"
 CXX="g++"
 
 MAKEOPTS="--quiet"
-FEATURES="${FEATURES} -sandbox parallel-fetch userfetch usersync parallel-install collision-protect compress-build-logs fail-clean metadata-transfer buildpkg multilib-strict -ccache -distcc -distcc-pump nodoc noinfo noman"
+FEATURES="${FEATURES} sandbox parallel-fetch userfetch usersync parallel-install -collision-detect -protect-owned sfperms compress-build-logs fail-clean metadata-transfer buildpkg multilib-strict strict -ccache -distcc -distcc-pump -xattr nodoc noinfo noman"
 
-CPUFLAGS_X86="3dnow 3dnowext mmx mmxext sse sse2 sse3 sse4a opencl" #AMDCPU
-#CPUFLAGS_X86="mmx sse sse2 sse3 ssse3 opencl" #INTELCPU
+CPUFLAGS_X86="aes avx pclmul popcnt 3dnow 3dnowext mmx mmxext sse sse2 sse3 ssse3 sse4a sse4_1 sse4_2 opencl" #AMDCPU
+#CPUFLAGS_X86="aes avx mmx sse sse2 sse3 ssse3 opencl" #INTELCPU
 
-USE="${CPUFLAGS_X86} -build -epydoc -doc -handbook -info -gnome -gtk -kde -kdeenablefinal -ldap -qt3 -qt3support -qt4 -consolekit -policykit -X -xwayland -xscreensaver -xv -osdmenu -gcrypt \
-x264 x265 xvid libmpeg2 aalib faac faad imgs png pdf djvu jpeg jpeg2k tiff gif svg raw webp wmf libass matroska aac a52 flac ogg mp3 vorbis gsm rtmp rtsp fontconfig truetype nls userlocales unicode iconv gpm gps imagemagick ipv6 joystick btrfs -wayland-compositor wayland -drm -gles2 wifi kvm v4l v4l2 win32codecs mtp vnc usb acpi alsa bash-completition curl ssh threads vim-syntax openssl fbdev fbcon directfb lzo 7z md5sum sqlite fuse"
+USE="${CPUFLAGS_X86} -build -epydoc -doc -handbook -info -gnome -gtk -kde -kdeenablefinal -ldap -qt3 -qt3support -qt4 -consolekit -policykit -X -xscreensaver -xv -osdmenu -gcrypt -slang \
+wps minimal tls-heartbeat 10bit rar lzma ffmpeg amr amrenc theora openh264 x264 x265 xvid libmpeg2 aalib faac faad imgs png pdf djvu jpeg jpeg2k tiff gif svg raw webp wmf libass matroska aac a52 flac ogg mp3 vorbis gsm rtmp librtmp rtsp fontconfig truetype nls userlocales unicode iconv gpm gps imagemagick ipv6 joystick btrfs wayland-compositor wayland -xwayland drm gles2 wifi kvm v4l v4l2 libv4l libv4l2 win32codecs mtp vnc usb acpi alsa bash-completition zsh-completion curl ssh threads vim-syntax openssl fbdev fbcon lzo 7z md5sum sqlite fuse lcms clang " 
 
 GENTOO_MIRRORS="http://mirror.yandex.ru/gentoo-distfiles/distfiles/ ftp://mirror.csclub.uwaterloo.ca/gentoo-distfiles/ http://distfiles.gentoo.org"
 
 EMERGE_DEFAULT_OPTS="--quiet-build=y --ask --tree --keep-going --with-bdeps=y --autounmask-write=y --verbose-conflicts --backtrack=30 --deep --jobs=2 --load-average"
 
 INPUT_DEVICES="evdev mouse keyboard"
-VIDEO_CARDS="vesa fbdev"
+VIDEO_CARDS="vesa fbdev" 
+#VIDEO_CARDS="intel i915 i965 nouveau nvidia radeon amdgpu fglrx vmware"
 ALSA_CARDS="snd-hda-intel"
 LINGUAS=""
 L10N="en en-US"
@@ -38,4 +39,6 @@ PORTAGE_NICENESS=19
 #CCACHE_SIZE="5G"
 #CCACHE_DIR="/var/cache/ccache"
 
-#QEMU_USER_TARGETS="${QEMU_USER_TARGETS} arm"
+#QEMU_USER_TARGETS="${QEMU_USER_TARGETS} arm" 
+#QEMU_SOFTMMU_TARGETS="${QEMU_SOFTMMU_TARGETS} arm"
+PAX_MARKINGS="none"
