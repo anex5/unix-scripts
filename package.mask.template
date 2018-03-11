@@ -1,0 +1,6 @@
+#/etc/portage/package.mask
+>dev-util/debootstrap-1.0.87
+>sys-boot/os-prober-1.71
+>dev-libs/openssl-1.1.0
+=net-misc/ntp-4.2.8_p10
+=app-text/mupdf-1.12.0
