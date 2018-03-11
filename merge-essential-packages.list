@@ -29,6 +29,7 @@ app-arch/star
 app-arch/unace
 app-arch/unrar
 app-arch/unshield
+app-arch/xar
 app-arch/zip
 app-crypt/sbsigntool
 app-crypt/chntpw
