@@ -2,11 +2,13 @@
 media-libs/mesa gles2
 media-libs/svgalib -kernel-helper
 media-fonts/terminus-font -pcf
-app-emulation/qemu spice virtfs
+app-emulation/qemu spice virtfs virgl nfs 
 dev-libs/weston editor examples rdp screen-sharing lcms
 app-text/mupdf -lcms
 sys-apps/iproute2 -minimal
+app-editors/vim -minimal
 net-misc/ntp opentpd
->=x11-libs/cairo-1.14.8 xcb
+x11-libs/cairo xcb
 uev-libs/openssl -bindist
 sys-devel/llvm gold
+media-gfx/blender cycles colorio openimageio opensubdiv bullet jemalloc opengl opencl 

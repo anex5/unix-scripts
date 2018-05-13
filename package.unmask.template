@@ -1,12 +1,20 @@
 #/etc/portage/package.unmask
-sys-kernel/spl
-sys-fs/zfs
-sys-fs/zfs-kmod
-# clang5 LLVM5
-=sys-devel/llvm-common-5.0.1
-=sys-devel/clang-9999
-=sys-devel/llvm-9999
-=sys-devel/llvmgold-7
-=sys-devel/llvm-5.0.1
-=sys-devel/clang-runtime-5.0.1
-=sys-devel/clang-5.0.1
+
+# ZFS
+#sys-kernel/spl
+#sys-fs/zfs
+#sys-fs/zfs-kmod
+
+# weston
+=dev-libs/wayland-9999
+=dev-libs/wayland-protocols-9999
+=dev-libs/weston-9999
+
+# mesa
+=dev-libs/mesa-9999
+=sys-libs/libomp-9999
+
+# kmscon
+=sys-apps/kmscon-9999
+=sys-apps/libtsm-9999
+
