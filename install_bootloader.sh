@@ -28,9 +28,20 @@ gen_syslinux_cfg()
 		echo -e "UI ${ui}" >> "${2}"
 		echo -e "PROMPT ${pt}" >> "${2}"
 		echo -e "TIMEOUT ${to}" >> "${2}" 
+		echo -e "MENU TITLE WELLCOME" >> "${2}" 
 		echo -e "TABMSG" >> "${2}"
-		echo -e "MENU BACKGROUND #c00090f0" >> "${2}" 
+		echo -e "MENU BACKGROUND #c00090f0" >> "${2}"
+		echo -e "MENU WIDTH 160" >> "${2}"
 		echo -e "MENU ROWS 5" >> "${2}"
+		echo -e "MENU MARGIN 6" >> "${2}"
+		echo -e "MENU VSHIFT 8" >> "${2}"
+		echo -e "MENU RESOLUTION $(cat /sys/devices/platform/efi-framebuffer.0/width) $(cat /sys/devices/platform/efi-framebuffer.0/width) " >> "${2}"
+		echo -e "MENU COLOR border 30,44 #00000000 #00000000 none" >> "${2}"
+		echo -e "MENU COLOR title 0 #9033ccff #00000000 std" >> "${2}"
+		echo -e "MENU COLOR disabled 0 #9033ccff #00000000 std" >> "${2}"
+		echo -e "MENU COLOR sel 30,47 #ffffffff #e0000000 none" >> "${2}"
+		echo -e "MENU COLOR unsel 30,47 #efffffff #00000000 none" >> "${2}"
+		echo -e "DEFAULT" >> "${2}"
 	done
 }
 
@@ -99,10 +110,11 @@ echo "Boot partition found: ${boot_part} disk: ${work_disk} type: ${disklabeltyp
 printf "Mounting boot partition. \n"
 try mount ${boot_part} ${work_dir}/boot && { cleanup wait_umount ${work_dir}/boot; cleanup umount -d ${work_dir}/boot; } || { die "Cannot mount ${boot_part}"; }
 
-resc_kernel_list=$(find ${work_dir}/boot -maxdepth 1 -type f -name "rescue*" -printf '/%P/n')
-efi_kernel_list=$(find ${work_dir}/boot -maxdepth 1 -type f -name "*.efi" -printf '/%P/n')
-kernel_list="$(find ${work_dir}/boot -maxdepth 1 -type f -name "kernel*" -o -name "vmlinuz*" -o -name "bzImage*" -printf '/%P/n') ${resc_kernel_list} ${efi_kernel_list}"
-initramfs_list=$(find ${work_dir}/boot -maxdepth 1 -type f -name "init*" -printf '/%P/n')
+resc_kernel_list=$(find ${work_dir}/boot -maxdepth 1 -type f -name rescue* -printf '%P ')
+efi_kernel_list=$(find ${work_dir}/boot -maxdepth 1 -type f -name *.efi -printf '%P ')
+kernel_list="$(find ${work_dir}/boot -maxdepth 1 -type f -name kernel* -printf '%P ' \
+-or -name vmlinuz* -printf '%P ' -or -name bzImage* -printf '%P ') ${resc_kernel_list} ${efi_kernel_list}"
+initramfs_list=$(find ${work_dir}/boot -maxdepth 1 -type f -name "init*" -printf '%P ')
 
 if [ -n "${kernel_list}" ]; then
 	options="${kernel_list}"
@@ -125,7 +137,6 @@ if [ -n "${initramfs_list}" ]; then
 	fi
 fi
 
-
 options="syslinux grub u-boot uefi"
 if prompt_select "Select bootloader"; then
 	case ${selected} in
@@ -134,22 +145,19 @@ if prompt_select "Select bootloader"; then
 				"dos") 
 					conf_dir=${work_dir}/boot/extlinux
 					conf_name=extlinux.conf
-					syslinux_files="chain.c32 gfxboot.c32 vesamenu.c32 libutil.c32 libcom32.c32"
+					syslinux_files="\{chain.c32,gfxboot.c32,vesamenu.c32,libutil.c32,libcom32.c32\}"
 					try mkdir -vp ${conf_dir}
 					try extlinux --install ${conf_dir}
-					for sysfile in ${syslinux_files}
-					do
-						pv ${work_dir}/usr/share/syslinux/${sysfile} > ${conf_dir}/${sysfile}
-					done
+					cp ${work_dir}/usr/share/syslinux/${syslinux_files} ${conf_dir}
 					pv -s 440 -S -B 8 ${work_dir}/usr/share/syslinux/mbr.bin > ${work_disk}
 					gen_syslinux_cfg "${menu_timeout}:${promt_timeout}:vesamenu.c32" ${conf_dir}/${conf_name}
 					;;
 				"gpt")	
-					conf_dir=${work_dir}/boot/EFI/boot
+					conf_dir=${work_dir}/boot/efi
 					conf_name=syslinux.cfg
 					try syslinux --install ${boot_part}
 					try mkdir -vp ${work_dir}
-					scp ${work_dir}/usr/share/syslinux/efi64/* ${conf_dir}
+					cp ${work_dir}/usr/share/syslinux/efi64/* ${conf_dir}
 					mv ${work_dir}/usr/share/syslinux/efi64/syslinux.efi ${conf_dir}/bootx64	
 					gen_syslinux_cfg "${menu_timeout}:${promt_timeout}:vesamenu.c32" ${conf_dir}/${conf_name}
 					;;
