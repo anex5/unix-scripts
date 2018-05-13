@@ -1,0 +1,7 @@
+#/etc/portage/repos.conf/mva.conf
+[mva]
+priority = 10
+location = /var/overlay/mva
+sync-type = git
+sync-uri = https://github.com/msva/mva-overlay.git
+auto-sync = Yes
