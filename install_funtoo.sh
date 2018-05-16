@@ -285,7 +285,7 @@ fi
 
 if execution_premission "Remove /usr/share/{man,doc,gtk-doc} directories, and remove man packages from minimal system profile?"; then
 	rm -r ${work_dir}/usr/share/{man,doc,gtk-doc}
-	packages_path = ${work_dir}/var/git/meta-repo/kits/core-kit/profiles/funtoo/1.0/linux-gnu/flawor/minimal/packages
+	packages_path = ${work_dir}/var/git/meta-repo/kits/core-kit/profiles/funtoo/1.0/linux-gnu/flavor/minimal/packages
 	sed -i "s|^\(\*virtual/man\).*|\1\#\*virtual/man|" ${packages_path}
 	sed -i "s|^\(\*sys-apps/man-pages\).*|\1\#\*sys-apps/man-pages|" ${packages_path}
 	chmod +i ${packages_path}
