@@ -1,0 +1,12 @@
+#/etc/portage/repos.conf/gentoo.conf
+[DEFAULT]
+main-repo = gentoo
+
+[gentoo]
+priority = -1000
+location = /var/overlay/gentoo
+sync-type = git
+sync-uri = https://github.com/gentoo-mirror/gentoo
+#sync-type = rsync
+#sync-uri = rsync://rsync.ru.gentoo.org/gentoo-portage/
+auto-sync = Yes
