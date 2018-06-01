@@ -1,0 +1,2 @@
+#/etc/env.d/99python
+PYTHONDONTWRITEBYTECODE=1
