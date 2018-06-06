@@ -151,7 +151,7 @@ set noerrorbells                " don't beep
 set showcmd                     " show (partial) command in the last line of the screen
                                 "    this also shows visual selection info
 set nomodeline                  " disable mode lines (security measure)
-"set ttyfast                     " always use a fast terminal
+set ttyfast                     " always use a fast terminal
 set cursorline                  " underline the current line, for quick orientation
 " }}}
 
@@ -373,6 +373,36 @@ let NERDTreeIgnore=[ '\.pyc$', '\.pyo$', '\.py\$class$', '\.obj$',
 
 " vim-flake8 default configuration
 let g:flake8_show_in_gutter=1
+
+" vim-airline enable
+let g:airline_powerline_fonts = 1
+
+if !exists('g:airline_symbols')
+    let g:airline_symbols = {}
+endif
+
+" unicode symbols
+let g:airline_left_sep = '»'
+let g:airline_left_sep = '▶'
+let g:airline_right_sep = '«'
+let g:airline_right_sep = '◀'
+let g:airline_symbols.linenr = '␊'
+let g:airline_symbols.linenr = '␤'
+let g:airline_symbols.linenr = '¶'
+let g:airline_symbols.branch = '⎇'
+let g:airline_symbols.paste = 'ρ'
+let g:airline_symbols.paste = 'Þ'
+let g:airline_symbols.paste = '∥'
+let g:airline_symbols.whitespace = 'Ξ'
+
+" airline symbols
+let g:airline_left_sep = ''
+let g:airline_left_alt_sep = ''
+let g:airline_right_sep = ''
+let g:airline_right_alt_sep = ''
+let g:airline_symbols.branch = ''
+let g:airline_symbols.readonly = ''
+let g:airline_symbols.linenr = ''
 
 " Conflict markers {{{
 " highlight conflict markers
@@ -626,20 +656,21 @@ au filetype vim set formatoptions-=o
 "set guifont=Mensch\ for\ Powerline:h14 linespace=0
 "set guifont=saxMono:h14 linespace=3
 "set guifont=Ubuntu\ Mono:h18 linespace=3
-set guifont=Source\ Code\ Pro\ Light:h10 linespace=0
+"set guifont=Source\ Code\ Pro\ Light:h10 linespace=0
 
-if has("gui_running")
+"if has("gui_running")
     " Remove toolbar, left scrollbar and right scrollbar
-    set guioptions-=T
-    set guioptions-=l
-    set guioptions-=L
-    set guioptions-=r
-    set guioptions-=R
-    set guifont=Source\ Code\ Pro\ Light:h13 linespace=0
-else
-    set bg=dark
-endif
+"    set guioptions-=T
+"    set guioptions-=l
+"    set guioptions-=L
+"    set guioptions-=r
+"    set guioptions-=R
+"    set guifont=Source\ Code\ Pro\ Light:h13 linespace=0
+"else
+"    set bg=dark
+"endif
 
+"colorscheme molokai
 "colorscheme mustang
 "colorscheme mustang_silent
 "colorscheme wombat256
