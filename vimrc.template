@@ -18,6 +18,7 @@ let mapleader=","
 let maplocalleader="\\"
 
 " Editing behaviour {{{
+filetype indent on              " load indent.vim needed for flake8 and other plugins
 set showmode                    " always show what mode we're currently editing in
 set nowrap                      " don't wrap lines
 set tabstop=4                   " a tab is four spaces
@@ -40,7 +41,9 @@ set virtualedit=all             " allow the cursor to go in to "invalid" places
 set hlsearch                    " highlight search terms
 set incsearch                   " show search matches as you type
 set gdefault                    " search/replace "globally" (on a line) by default
-set listchars=tab:▸\ ,trail:·,extends:#,nbsp:·
+
+set listchars=trail:·,precedes:«,extends:»,eol:↲,tab:▸\ 
+" set listchars=trail:\uB7,precedes:«,extends:»,eol:↲,tab:\uBB\uBB 
 
 set nolist                      " don't show invisible characters by default,
                                 " but it is enabled for some file types (see later)
@@ -284,9 +287,9 @@ nnoremap N N:call PulseCursorLine()<cr>
 inoremap jj <Esc>
 
 " Quick alignment of text
-" nnoremap <leader>al :left<CR>
-" nnoremap <leader>ar :right<CR>
-" nnoremap <leader>ac :center<CR>
+nnoremap <leader>al :left<CR>
+nnoremap <leader>ar :right<CR>
+nnoremap <leader>ac :center<CR>
 
 " Sudo to write
 cnoremap w!! w !sudo tee % >/dev/null
@@ -670,7 +673,7 @@ au filetype vim set formatoptions-=o
 "    set bg=dark
 "endif
 
-"colorscheme molokai
+colorscheme molokai
 "colorscheme mustang
 "colorscheme mustang_silent
 "colorscheme wombat256
@@ -768,8 +771,8 @@ nnoremap <leader>. :CtrlPTag<cr>
 nnoremap <leader>b :CtrlPBuffer<cr>
 
 " Learn Vim Script the Hard Way Exercises
-"noremap - ddp
-"noremap _ ddkP
+noremap - ddp
+noremap _ ddkP
 
 " C-U in insert/normal mode, to uppercase the word under cursor
 inoremap <c-u> <esc>viwUea
@@ -843,7 +846,7 @@ let g:expand_region_text_objects = {
    \ }
 
 " HTML specific region expansions
-call expand_region#custom_text_objects('html', {
-   \ 'it': 1,
-   \ 'at': 1,
-   \ })
+" call expand_region#custom_text_objects('html', {
+"   \ 'it': 1,
+"   \ 'at': 1,
+"   \ })
