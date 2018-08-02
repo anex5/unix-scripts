@@ -1,5 +1,10 @@
 #/root/.bash_profile
-HISTCONTROL=ignoreboth:erasedups HISTSIZE=100000 HISTFILESIZE=200000
+HISTCONTROL=ignoreboth:erasedups 
+HISTSIZE=100000 
+HISTFILESIZE=200000
+shopt -s histappend
+PROMPT_COMMAND="history -n; history -w; history -c; history -r; $PROMPT_COMMAND"
+
 ls --color=al > /dev/null 2>&1 && alias ls='ls -F --color=al' || alias ls='ls -G'
 md () { [ $# = 1 ] && mkdir -p "$@" && cd "$@" || echo "Error - no directory passed!"; }
 git_branch () { git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'; }
@@ -10,7 +15,6 @@ BRANCH='\033[00;33m\]$(git_branch)\[\033[00m\]\n\$ '
 PS1=$TIME$USER\ $HOST\ $LOCATION\ $BRANCH
 PS2='\[\033[01;36m\]>'
 
-export EDITOR=vim
 test -f ~/.bash_aliases && . $_
 test -f ~/.git-completion.bash && . $_
 test -s ~/.autojump/etc/profile.d/autojump && . $_
