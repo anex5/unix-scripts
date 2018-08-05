@@ -8,12 +8,12 @@ PROMPT_COMMAND="history -n; history -w; history -c; history -r; $PROMPT_COMMAND"
 ls --color=al > /dev/null 2>&1 && alias ls='ls -F --color=al' || alias ls='ls -G'
 md () { [ $# = 1 ] && mkdir -p "$@" && cd "$@" || echo "Error - no directory passed!"; }
 git_branch () { git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'; }
-HOST='\033[02;36m\]\h'
-TIME='\033[01;31m\]\t\033[01;32m\]'
-LOCATION='\033[01;34m\]`pwd | sed "s#\(/[^/]\{1,\}/[^/]\{1,\}/[^/]\{1,\}/\).*\(/[^/]\{1,\}/[^/]\{1,\}\)/\{0,1\}#\1_\2#g"`'
-BRANCH='\033[00;33m\]$(git_branch)\[\033[00m\]\n\$ '
-PS1=$TIME$USER\ $HOST\ $LOCATION\ $BRANCH
-PS2='\[\033[01;36m\]>'
+HOST='\[\033[2;36m\]\h'; HOST=' '$HOST
+TIME='\[\033[1;31m\]\t \[\033[1;32m\]'
+LOCATION=' \[\033[1;34m\]`pwd | sed "s#\(/[^/]\{1,\}/[^/]\{1,\}/[^/]\{1,\}/\).*\(/[^/]\$
+BRANCH=' \[\033[0;33m\]$(git_branch)\[\033[00m\]\n\$ '
+PS1=$TIME$USER$HOST$LOCATION$BRANCH
+PS2='\[\033[1;36m\]>'
 
 test -f ~/.bash_aliases && . $_
 test -f ~/.git-completion.bash && . $_
@@ -28,10 +28,6 @@ if test -z "${XDG_RUNTIME_DIR}"; then
         chmod 0700 "${XDG_RUNTIME_DIR}"
     fi
 fi
-
-# fix broken console with utf8 in the alternative-kernels
-echo -n -e '\033%G'
-kbd_mode -u
 
 LINES=$(stty size|cut -d" " -f1)
 fbecho()
