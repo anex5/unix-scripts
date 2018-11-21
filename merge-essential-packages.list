@@ -8,6 +8,7 @@ app-arch/cfv
 app-arch/dpkg
 app-arch/dump
 app-arch/lbzip2
+app-arch/pigz
 app-arch/libarchive
 app-arch/lrzip
 app-arch/lz4
@@ -55,6 +56,8 @@ net-wireless/wpa_supplicant
 sys-apps/ethtool
 sys-apps/ifplugd
 sys-apps/pv
+sys-boot/efibootmgr
+sys-boot/gnu-efi
 sys-fs/aufs-util
 sys-fs/btrfs-progs
 sys-fs/cryptsetup
