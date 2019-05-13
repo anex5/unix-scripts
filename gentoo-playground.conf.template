@@ -1,0 +1,7 @@
+# /etc/portage/repos.conf/gentoo-playground.conf
+[gentoo-playground]
+priority = 10
+location = /var/overlay/gentoo-playground
+sync-type = git
+sync-uri = https://github.com/sjnewbury/gentoo-playground.git
+auto-sync = Yes

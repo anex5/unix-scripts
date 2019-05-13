@@ -1,4 +1,4 @@
-#/etc/portage/repos.conf/mva.conf
+# /etc/portage/repos.conf/mva.conf
 [mva]
 priority = 10
 location = /var/overlay/mva

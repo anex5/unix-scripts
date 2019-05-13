@@ -1,16 +1,32 @@
 #/root/.bash_profile
-HISTCONTROL=ignoreboth:erasedups 
+HISTCONTROL=ignoreboth:erasedups
+HISTIGNORE="q:f:v"
 HISTSIZE=100000 
 HISTFILESIZE=200000
+shopt -s direxpand
+shopt -s checkhash
+shopt -s sourcepath
+shopt -s expand_aliases
+shopt -s autocd cdspell
+shopt -s extglob dotglob
+shopt -s no_empty_cmd_completion
+shopt -s autocd cdable_vars cdspell
+# append to the history file, don't overwrite it
 shopt -s histappend
+# multi-line commands should be stored as a single command
+shopt -s cmdhist
+shopt -s histreedit histverify
+# sharing of history between multiple terminals 
+# histfile has to be read and saved after each command execution
 PROMPT_COMMAND="history -n; history -w; history -c; history -r; $PROMPT_COMMAND"
 
 ls --color=al > /dev/null 2>&1 && alias ls='ls -F --color=al' || alias ls='ls -G'
 md () { [ $# = 1 ] && mkdir -p "$@" && cd "$@" || echo "Error - no directory passed!"; }
 git_branch () { git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'; }
+
 HOST='\[\033[2;36m\]\h'; HOST=' '$HOST
 TIME='\[\033[1;31m\]\t \[\033[1;32m\]'
-LOCATION=' \033[01;34m\]`pwd | sed "s#\(/[^/]\{1,\}/[^/]\{1,\}/[^/]\{1,\}/\).*\(/[^/]\{1,\}/[^/]\{1,\}\)/\{0,1\}#\1_\2#g"`'
+LOCATION=' \[\033[01;34m\]`pwd | sed "s#\(/[^/]\{1,\}/[^/]\{1,\}/[^/]\{1,\}/\).*\(/[^/]\{1,\}/[^/]\{1,\}\)/\{0,1\}#\1_\2#g"`'
 BRANCH=' \[\033[0;33m\]$(git_branch)\[\033[00m\]\n\$ '
 PS1=$TIME$USER$HOST$LOCATION$BRANCH
 PS2='\[\033[1;36m\]>'
@@ -33,4 +49,55 @@ LINES=$(stty size|cut -d" " -f1)
 fbecho()
 {
 	[ $LINES -ge 28 ] && echo
+}
+
+arc()
+{
+    arg="$1"; shift
+    case $arg in
+        -e|--extract)
+            if [[ $1 && -e $1 ]]; then
+                case $1 in
+                    *.tbz2|*.tar.bz2) tar xvjf "$1" ;;
+                    *.tgz|*.tar.gz) tar xvzf "$1" ;;
+                    *.tar.xz) tar xpvf "$1" ;;
+                    *.tar) tar xvf "$1" ;;
+                    *.gz) gunzip "$1" ;;
+                    *.zip) unzip "$1" ;;
+                    *.bz2) bunzip2 "$1" ;;
+                    *.7zip) 7za e "$1" ;;
+                    *.rar) unrar x "$1" ;;
+                    *) printf "'%s' can't be extracted" "$1"
+                esac
+            else
+                printf "'%s' file not valid archive" "$1"
+            fi ;;
+        -n|--new)
+            case $1 in
+                *.tar.*)
+                    name="${1%.*}"
+                    ext="${1#*.tar}"; shift
+                    tar cvf "$name" "$@"
+                    case $ext in
+                        .gz) gzip -9r "$name" ;;
+                        .bz2) bzip2 -9zv "$name"
+                    esac ;;
+                *.gz) shift; gzip -9rk "$@" ;;
+                *.zip) zip -9r "$@" ;;
+                *.7z) 7z a -mx9 "$@" ;;
+                *) printf "extension non supported"
+            esac ;;
+        *) printf "Invalid argument '%s'" "$arg"
+    esac
+}
+
+killp()
+{
+    local pid name sig="-TERM"   # default signal
+    [[ $# -lt 1 || $# -gt 2 ]] && printf "Usage: killp [-SIGNAL] pattern" && return 1
+    [[ $# -eq 2 ]] && sig=$1
+    for pid in $(mp | awk '!/awk/ && $0~pat { print $1 }' pat=${!#}); do
+        name=$(mp | awk '$1~var { print $5 }' var=$pid)
+        ask "Kill process $pid <$name> with signal $sig?" && kill $sig $pid
+    done
 }

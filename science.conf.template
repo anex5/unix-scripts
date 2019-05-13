@@ -1,5 +1,5 @@
+# /etc/portage/repos.conf/science.conf
 
-#/etc/portage/repos.conf/science.conf
 [science]
 priority = 50
 location = /var/overlay/science

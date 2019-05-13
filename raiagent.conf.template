@@ -1,0 +1,7 @@
+# /etc/portage/repos.conf/raiagent.conf
+[raiagent]
+priority = 10
+location = /var/overlay/raiagent
+sync-type = git
+sync-uri = https://github.com/leycec/raiagent.git
+auto-sync = Yes

@@ -1,0 +1,6 @@
+# /etc/portage/repos.conf/crossdev.conf
+[crossdev]
+priority = 9999
+masters = gentoo
+auto-sync = no
+location = /var/overlay/crossdev-overlay

@@ -1,4 +1,4 @@
-#/etc/portage/repos.conf/sage-on-gentoo.conf
+# /etc/portage/repos.conf/sage-on-gentoo.conf
 [sage-on-gentoo]
 priority = 50
 location = /var/overlay/sage-on-gentoo

@@ -1,0 +1,7 @@
+# /etc/portage/repos.conf/gentoo-locomotion.conf
+[gentoo-locomotion]
+priority = 10
+location = /var/overlay/gentoo-locomotion
+sync-type = git
+sync-uri = https://github.com/anex5/gentoo-locomotion.git
+auto-sync = Yes

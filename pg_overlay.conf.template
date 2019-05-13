@@ -1,0 +1,7 @@
+# /etc/portage/repos.conf/pg_overlay.conf
+[pg_overlay]
+priority = 10
+location = /var/overlay/pg_overlay
+sync-type = git
+sync-uri = https://github.com/perfect7gentleman/pg_overlay.git
+auto-sync = Yes
