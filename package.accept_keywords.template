@@ -5,14 +5,14 @@
 #sys-fs/zfs-kmod
 
 # weston
-=dev-libs/wayland-9999 **
-=dev-libs/wayland-protocols-9999 **
-=dev-libs/weston-9999 **
+#=dev-libs/wayland-9999 **
+#=dev-libs/wayland-protocols-9999 **
+#=dev-libs/weston-9999 **
 
 # mesa
-=dev-libs/mesa-9999 **
-=sys-libs/libomp-9999 **
+#=dev-libs/mesa-9999 **
+#=sys-libs/libomp-9999 **
 
 # kmscon
-=sys-apps/kmscon-9999 **
-=sys-apps/libtsm-9999 **
+#=sys-apps/kmscon-9999 **
+#=sys-apps/libtsm-9999 **
