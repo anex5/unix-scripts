@@ -8,11 +8,13 @@ CC="gcc"
 CXX="g++"
 
 MAKEOPTS="-j4 -l4 --quiet"
+NINJAOPTS="-j4"
+
 FEATURES="${FEATURES} sandbox multilib-strict parallel-fetch userfetch usersync parallel-install -preserve-libs -protect-owned sfperms -compress-build-logs -fail-clean metadata-transfer buildpkg -ccache -distcc -distcc-pump -xattr nodoc noinfo noman notitles noauto ebuild-locks candy -keepwork clean-logs"
 
 CPU_FLAGS_X86="mmx mmxext sse sse2 sse3 ssse3 sse4_1 sse4_2"
 
-USE="-low-memory gmp vulkan lapack fortran -dbus -deprecated multitarget dga -opencl -opengl openvg openal gles2 gles egl -cups -pam -python -installkernel -build -epydoc -doc -rdoc -handbook -info -man -gnome -gtk -kde -kdeenablefinal -ldap -qt3 -qt3support -qt4 -consolekit -policykit -X -xscreensaver -xinerama -xv -osdmenu -gcrypt -slang \
+USE="-low-memory gmp vulkan -lapack -fortran -dbus -deprecated multitarget dga -opencl -opengl openvg openal gles2 gles egl -cups -pam -python -installkernel -build -epydoc -doc -rdoc -handbook -info -man -gnome -gtk -kde -kdeenablefinal -ldap -qt3 -qt3support -qt4 -consolekit -policykit -X -xscreensaver -xinerama -xv -osdmenu -gcrypt -slang \
 lm_sensors nfs xkbcommon iscsi int64 terminal icu gbm libkms libdrm jemalloc tcmalloc new-tcmalloc wps minimal tls-heartbeat 10bit rar lzma ffmpeg amr amrenc theora openh264 x264 x265 vpx xvid libilbc libcaca libmpv libmpeg2 aalib faac faad opus mp4 flv imgs apng png pdf djvu jpeg jpeg2k tiff gif svg raw webp wmf libass matroska aac a52 flac ogg mp3 vorbis gsm rtmp librtmp rtsp fontconfig truetype nls userlocales unicode iconv gpm gps imagemagick ipv6 joystick btrfs wayland-compositor wayland -xwayland drm gles2 wifi bluetooth kvm v4l v4l2 libv4l libv4l2 win32codecs mtp vnc usb usbredir acpi udev alsa harfbuzz bash-completition zsh-completion curl ssh threads ithreads vim-syntax openssl fbdev fbcon lzo 7z md5sum sqlite fuse clang clang_tidy gold -thinlto -lld libcxx livecd lua luajit bittorrent javascript ftp sftp brotli json"
 
 GENTOO_MIRRORS="https://mirror.yandex.ru/gentoo-distfiles"
@@ -29,6 +31,8 @@ PORTAGE_BINHOST="/var/cache/portage/packages"
 DISTDIR="/var/cache/portage/distfiles"
 PKGDIR="/var/cache/portage/packages"
 RPMDIR="/var/cache/portage/rpm"
+EGIT_CLONE_TYPE="shallow"
+EGIT3_STORE_DIR="/var/cache/portage/git-r3"
 
 LLVM_TARGETS="X86 AMDGPU BPF NVPTX ARM Mips AArch64"
 
@@ -43,6 +47,7 @@ PORTAGE_ELOG_CLASSES="log warn error info"
 PORTAGE_ELOG_SYSTEM="echo:log,warn save:log,warn,error,info syslog:error"
 PORTAGE_NICENESS=9
 INSTALL_MASK="README\ *.pdf"
+SYMLINK_LIB=no
 
 #CCACHE_SIZE="5G"
 #CCACHE_DIR="/var/cache/ccache"
