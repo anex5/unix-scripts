@@ -18,6 +18,7 @@ let mapleader=","
 let maplocalleader="\\"
 
 " Editing behaviour {{{
+filetype indent on              " load indent.vim needed for flake8 and other plugins
 set showmode                    " always show what mode we're currently editing in
 set nowrap                      " don't wrap lines
 set tabstop=4                   " a tab is four spaces
@@ -40,7 +41,9 @@ set virtualedit=all             " allow the cursor to go in to "invalid" places
 set hlsearch                    " highlight search terms
 set incsearch                   " show search matches as you type
 set gdefault                    " search/replace "globally" (on a line) by default
-set listchars=tab:▸\ ,trail:·,extends:#,nbsp:·
+
+set listchars=trail:·,precedes:«,extends:»,eol:↲,tab:▸\ 
+" set listchars=trail:\uB7,precedes:«,extends:»,eol:↲,tab:\uBB\uBB 
 
 set nolist                      " don't show invisible characters by default,
                                 " but it is enabled for some file types (see later)
@@ -151,7 +154,7 @@ set noerrorbells                " don't beep
 set showcmd                     " show (partial) command in the last line of the screen
                                 "    this also shows visual selection info
 set nomodeline                  " disable mode lines (security measure)
-"set ttyfast                     " always use a fast terminal
+set ttyfast                     " always use a fast terminal
 set cursorline                  " underline the current line, for quick orientation
 " }}}
 
@@ -284,9 +287,9 @@ nnoremap N N:call PulseCursorLine()<cr>
 inoremap jj <Esc>
 
 " Quick alignment of text
-" nnoremap <leader>al :left<CR>
-" nnoremap <leader>ar :right<CR>
-" nnoremap <leader>ac :center<CR>
+nnoremap <leader>al :left<CR>
+nnoremap <leader>ar :right<CR>
+nnoremap <leader>ac :center<CR>
 
 " Sudo to write
 cnoremap w!! w !sudo tee % >/dev/null
@@ -373,6 +376,36 @@ let NERDTreeIgnore=[ '\.pyc$', '\.pyo$', '\.py\$class$', '\.obj$',
 
 " vim-flake8 default configuration
 let g:flake8_show_in_gutter=1
+
+" vim-airline enable
+let g:airline_powerline_fonts = 1
+
+if !exists('g:airline_symbols')
+    let g:airline_symbols = {}
+endif
+
+" unicode symbols
+let g:airline_left_sep = '»'
+let g:airline_left_sep = '▶'
+let g:airline_right_sep = '«'
+let g:airline_right_sep = '◀'
+let g:airline_symbols.linenr = '␊'
+let g:airline_symbols.linenr = '␤'
+let g:airline_symbols.linenr = '¶'
+let g:airline_symbols.branch = '⎇'
+let g:airline_symbols.paste = 'ρ'
+let g:airline_symbols.paste = 'Þ'
+let g:airline_symbols.paste = '∥'
+let g:airline_symbols.whitespace = 'Ξ'
+
+" airline symbols
+let g:airline_left_sep = ''
+let g:airline_left_alt_sep = ''
+let g:airline_right_sep = ''
+let g:airline_right_alt_sep = ''
+let g:airline_symbols.branch = ''
+let g:airline_symbols.readonly = ''
+let g:airline_symbols.linenr = ''
 
 " Conflict markers {{{
 " highlight conflict markers
@@ -626,20 +659,21 @@ au filetype vim set formatoptions-=o
 "set guifont=Mensch\ for\ Powerline:h14 linespace=0
 "set guifont=saxMono:h14 linespace=3
 "set guifont=Ubuntu\ Mono:h18 linespace=3
-set guifont=Source\ Code\ Pro\ Light:h10 linespace=0
+"set guifont=Source\ Code\ Pro\ Light:h10 linespace=0
 
-if has("gui_running")
+"if has("gui_running")
     " Remove toolbar, left scrollbar and right scrollbar
-    set guioptions-=T
-    set guioptions-=l
-    set guioptions-=L
-    set guioptions-=r
-    set guioptions-=R
-    set guifont=Source\ Code\ Pro\ Light:h13 linespace=0
-else
-    set bg=dark
-endif
+"    set guioptions-=T
+"    set guioptions-=l
+"    set guioptions-=L
+"    set guioptions-=r
+"    set guioptions-=R
+"    set guifont=Source\ Code\ Pro\ Light:h13 linespace=0
+"else
+"    set bg=dark
+"endif
 
+colorscheme molokai
 "colorscheme mustang
 "colorscheme mustang_silent
 "colorscheme wombat256
@@ -737,8 +771,8 @@ nnoremap <leader>. :CtrlPTag<cr>
 nnoremap <leader>b :CtrlPBuffer<cr>
 
 " Learn Vim Script the Hard Way Exercises
-"noremap - ddp
-"noremap _ ddkP
+noremap - ddp
+noremap _ ddkP
 
 " C-U in insert/normal mode, to uppercase the word under cursor
 inoremap <c-u> <esc>viwUea
@@ -812,7 +846,7 @@ let g:expand_region_text_objects = {
    \ }
 
 " HTML specific region expansions
-call expand_region#custom_text_objects('html', {
-   \ 'it': 1,
-   \ 'at': 1,
-   \ })
+" call expand_region#custom_text_objects('html', {
+"   \ 'it': 1,
+"   \ 'at': 1,
+"   \ })

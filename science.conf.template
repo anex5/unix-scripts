@@ -1,0 +1,8 @@
+# /etc/portage/repos.conf/science.conf
+
+[science]
+priority = 50
+location = /var/overlay/science
+sync-type = git
+sync-uri = https://github.com/gentoo-science/sci.git
+auto-sync = Yes

@@ -1,0 +1,7 @@
+# /etc/portage/repos.conf/pentoo.conf
+[pentoo]
+priority = 10
+location = /var/overlay/pentoo
+sync-type = git
+sync-uri = https://github.com/pentoo/pentoo-overlay.git
+auto-sync = Yes

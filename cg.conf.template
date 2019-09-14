@@ -1,4 +1,4 @@
-#/etc/portage/repos.conf/cg.conf
+# /etc/portage/repos.conf/cg.conf
 [cg]
 priority = 10
 location = /var/overlay/cg

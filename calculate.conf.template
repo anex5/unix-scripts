@@ -1,0 +1,7 @@
+# /etc/portage/repos.conf/calculate.conf
+[calculate]
+priority = 10
+location = /var/overlay/calculate
+sync-type = git
+sync-uri = https://github.com/calculatelinux/calculate.git
+auto-sync = Yes

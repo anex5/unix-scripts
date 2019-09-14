@@ -1,0 +1,7 @@
+# /etc/portage/repos.conf/chaoslab.conf
+[chaoslab]
+priority = 50
+location = /var/overlay/chaoslab
+sync-type = git
+sync-uri = https://gitlab.com/chaoslab/chaoslab-overlay.git
+auto-sync = Yes

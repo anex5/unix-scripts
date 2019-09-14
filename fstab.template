@@ -3,11 +3,11 @@
 # <file system>	<dir>	<type>	<options>	<dump>	<pass>
 shm	/dev/shm	tmpfs	nodev,nosuid,noexec	0	0
 tmpfs	/tmp	tmpfs	defaults,nodev,nosuid,mode=1777	0	0
-tmpfs	/var/tmp	tmpfs	rw,nosuid,noatime,nodev,size=4G,mode=1777	0	0
-tmpfs	/var/tmp/portage	tmpfs	rw,nosuid,noatime,nodev,size=4G,mode=775,uid=portage,gid=portage,x-mount.mkdir=775	0	0
-tmpfs	/var/run	tmpfs	defaults,nodev,nosuid,noexec,mode=0755,size=10m	0	0
-tmpfs	/run/lock	tmpfs	defaults,nodev,nosuid,noexec,mode=1777,size=10m	0	0
+tmpfs	/var/tmp	tmpfs	rw,nosuid,noatime,nodev,size=3584m,mode=1777	0	0
+#tmpfs	/var/tmp/portage	tmpfs	rw,nosuid,noatime,nodev,size=3.5G,mode=775,uid=portage,gid=portage,x-mount.mkdir=775	0	0
+tmpfs	/var/run	tmpfs	defaults,nodev,nosuid,noexec,mode=0755,size=396m	0	0
+tmpfs	/var/lock	tmpfs	defaults,nodev,nosuid,noexec,mode=1777,size=4m	0	0
 
-//192.168.1.143/work/unix-scripts	/media/windows	cifs	noauto,username=nobody,password=nobody,iocharset=utf8,vers=2.1,ro	0	0
-//192.168.1.143/write	/media/gain	cifs	noauto,username=nobody,password=nobody,vers=2.1,iocharset=utf8,rw	0	0
+#//192.168.1.143/work/unix-scripts	/media/windows	cifs	noauto,username=nobody,password=nobody,iocharset=utf8,vers=2.1,ro	0	0
+#//192.168.1.143/write	/media/gain	cifs	noauto,username=nobody,password=nobody,vers=2.1,iocharset=utf8,rw	0	0
 # /shared_folder	/media/shared	vboxsf	noauto,defaults	0	0

@@ -7,9 +7,7 @@ media-fonts/ubuntu-font-family
 media-fonts/urw-fonts
 media-fonts/corefonts
 media-fonts/unifont
-media-fonts/arphicfonts
-media-fonts/ipamonafont
-media-fonts/ja-ipafonts
-media-fonts/takao-fonts
-media-fonts/wqy-microhei
-media-fonts/wqy-zenhei
+media-fonts/freefonts
+media-fonts/artwiz-fonts
+media-fonts/sharefonts
+media-fonts/ttf-bitstream-vera
